@@ -78,7 +78,15 @@ A Seal lets the person who receives an email or file check that it came from a p
 
 The person who receives a sealed email opens the link in its footer. The page shows which PRSN sealed it, and when. The reader can also check that the email was sent to them. A Seal does not prove the email's words.
 
-A sealed email must be sent exactly as it was sealed. Hermes's own email platform builds its own message, so it cannot send a sealed email unchanged yet. Send a sealed `.eml` file with a program that sends a file's bytes unchanged.
+A sealed email must be sent exactly as it was sealed. Hermes's email gateway, which answers mail sent to the agent, builds its own message. So it cannot send a sealed email unchanged.
+
+The agent can send the sealed `.eml` file with Himalaya, the email client that Hermes's bundled email skill uses. Himalaya's raw send passes the file to your mail server as it is.
+
+```bash
+himalaya smtp send -f you@example.com -t reader@example.com -- /path/to/sealed.eml
+```
+
+Use the same From address that the Seal names, and send from that mailbox. Any other program that sends a file's bytes unchanged works too. The reader can drop their copy of the email on the Seal page to check that it matches.
 
 PRSN ID sets a daily allowance of Seals for each PRSN. A Seal expires after a time that PRSN ID sets.
 
@@ -118,7 +126,7 @@ A PRSN can seal only when it is verified. The plugin checks this live at each Se
 
 ## Where it is tested
 
-The plugin is tested on macOS with Hermes 0.23.0 and PRSN Connect v0.2.0. On Windows, file Seals are refused, and a sealed message cannot carry attachments. PRSN Connect makes email Seals on all three systems. The plugin's Windows and Linux tests follow.
+The plugin is tested on macOS with Hermes 0.23.0 and PRSN Connect v0.2.0. An agent sealed an email and sent it with Himalaya 2.2.1, and the received copy matched on its Seal page. On Windows, file Seals are refused, and a sealed message cannot carry attachments. PRSN Connect makes email Seals on all three systems. The plugin's Windows and Linux tests follow.
 
 
 ## Sharing a computer
