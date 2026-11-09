@@ -1,0 +1,235 @@
+{
+  "source": "prsn-gateway-mcp 0.2.0, tools/list, 2026-11-07",
+  "tools": {
+    "get_profile": {
+      "description": "Get your identity profile — who you are, your autonomy level, verification status",
+      "inputSchema": {
+        "properties": {},
+        "type": "object"
+      }
+    },
+    "get_gateway_status": {
+      "description": "Check your gateway connection state — whether you have an active platform session",
+      "inputSchema": {
+        "properties": {},
+        "type": "object"
+      }
+    },
+    "seal_message": {
+      "description": "Prepare a sealed email in one step: give its parts, and PRSN Connect writes the whole message, sealed and ready to send, to output_path (a new .eml file). Your device key signs its envelope (From, Message-ID, Date, To and Cc as keyed digests, the attachment count, the subject only if you include it); PRSN Connect sets the Message-ID and Date itself. The message carries a plain and an HTML version, each ending with the Seal's link (a button in HTML). Send the file's bytes as they are. A Seal does not prove the words of the email. Never pass Bcc: add Bcc recipients only when you send.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "properties": {
+          "attachments": {
+            "description": "Absolute paths of files to attach, 25 MB in all.",
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "cc": {
+            "description": "The Cc addresses. Never Bcc.",
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "format": {
+            "description": "\"plain\" (the default) or \"markdown\": paragraphs, **bold**, \"- \" lists and bare https:// links; nothing else is rendered.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "from": {
+            "description": "Your sender address, as in From.",
+            "type": "string"
+          },
+          "from_name": {
+            "description": "Your display name, as your email normally shows it.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "html": {
+            "description": "Your own HTML body, used as given, with the Seal's button added. Leave it out unless you need it.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "in_reply_to": {
+            "description": "The Message-ID you are replying to, as <id@host>.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "include_subject": {
+            "description": "Whether to seal the subject too.",
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "output_path": {
+            "description": "Where to write the finished message: an absolute path ending in .eml that does not exist yet.",
+            "type": "string"
+          },
+          "references": {
+            "description": "The thread's Message-IDs, each as <id@host>.",
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "retention_seconds": {
+            "description": "How long the Seal lives, in seconds. PRSN ID's default when left out.",
+            "format": "uint32",
+            "minimum": 0,
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "subject": {
+            "description": "The subject, as the reader will see it.",
+            "type": "string"
+          },
+          "text": {
+            "description": "The body as you write it. Give text, or html, or both.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "to": {
+            "description": "The To addresses. Never Bcc.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "from",
+          "to",
+          "subject",
+          "output_path"
+        ],
+        "type": "object"
+      }
+    },
+    "seal_email": {
+      "description": "Seal an email you are about to send. Your device key signs its envelope: From, Message-ID, Date, To and Cc as keyed digests, the attachment count, and the subject only if you include it. Returns the PRSN-Seal header and a footer with the link, to add before sending. Set Message-ID and Date before sealing and do not change them after. A Seal does not prove the words of the email. Never pass Bcc.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "properties": {
+          "attachments": {
+            "description": "How many attachments the email carries.",
+            "format": "uint32",
+            "minimum": 0,
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "cc": {
+            "description": "The Cc addresses. Never Bcc.",
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "date": {
+            "description": "The Date header. Set it before sealing and never change it after.",
+            "type": "string"
+          },
+          "from": {
+            "description": "The sender's address, as in From.",
+            "type": "string"
+          },
+          "include_subject": {
+            "description": "Whether to seal the subject too.",
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "message_id": {
+            "description": "The Message-ID header. Set it before sealing and never change it after.",
+            "type": "string"
+          },
+          "retention_seconds": {
+            "description": "How long the Seal lives, in seconds. PRSN ID's default when left out.",
+            "format": "uint32",
+            "minimum": 0,
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "subject": {
+            "description": "The subject. Sealed only if include_subject is true; cut to 120 characters.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "to": {
+            "description": "The To addresses. Never Bcc.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "from",
+          "message_id",
+          "date",
+          "to"
+        ],
+        "type": "object"
+      }
+    },
+    "seal_file": {
+      "description": "Seal a file you are sending. Your device key signs a statement of its name, size and a keyed digest, and you get a link anyone can open to see which PRSN sealed it, on which device, and when; the reader drops their copy on the page to check it is the same file. Give the file's absolute path on this computer. This works on the gateway's local socket only, not from a container. Seals expire: PRSN ID's default unless you give retention_seconds.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "properties": {
+          "path": {
+            "description": "The file's absolute path on this computer.",
+            "type": "string"
+          },
+          "retention_seconds": {
+            "description": "How long the Seal lives, in seconds. PRSN ID's default when left out.",
+            "format": "uint32",
+            "minimum": 0,
+            "type": [
+              "integer",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "type": "object"
+      }
+    }
+  }
+}

@@ -1,0 +1,30 @@
+name: prsn-id
+version: 0.1.0
+description: Gives a Hermes agent its PRSN ID, read live from PRSN Connect. The agent can seal email and files with its PRSN's key. The human says yes to each Seal.
+author: PRSN EX Inc.
+license: MIT
+requires_hermes: ">=0.23.0"
+tags: [identity, verification, signing, prsn-id]
+provides_tools:
+  - prsn_id_profile
+  - prsn_id_status
+  - prsn_id_seal_message
+  - prsn_id_seal_email
+  - prsn_id_seal_file
+provides_hooks:
+  - pre_tool_call
+  - pre_llm_call
+  - post_compaction
+config_schema:
+  prsn_name:
+    type: string
+    default: ""
+    description: This agent's PRSN name, such as alice.prsn.eth. Needed only when PRSN Connect serves more than one PRSN on this computer.
+  guardian:
+    type: string
+    default: ""
+    description: The guardian's name, for the agent to say. PRSN Connect does not report it.
+  server_log:
+    type: boolean
+    default: false
+    description: Keep PRSN Connect's server log in the plugin's data folder, for finding a fault. It holds addresses and connection states, never a token.

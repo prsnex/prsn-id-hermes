@@ -1,0 +1,3 @@
+# Hermes installs a plugin with git clone and sets no line endings. The code fingerprint
+# hashes each file's bytes, so a checkout that converts LF would read as other code.
+* text=auto eol=lf
