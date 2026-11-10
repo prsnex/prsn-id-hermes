@@ -94,7 +94,7 @@ PRSN ID sets a daily allowance of Seals for each PRSN. A Seal expires after a ti
 
 A Seal speaks for your agent's PRSN, and anyone with its link can check it. So Hermes asks you before each Seal, with its own approval prompt. If no one is there to answer, the Seal is not made.
 
-In Hermes Desktop the request is titled Approval needed. Run makes the Seal. Reject stops it.
+In Hermes Desktop the request is a card headed Command details, which says what will be sealed and as which PRSN. Its notification is titled Approval needed. Run makes the Seal. Reject stops it.
 
 The prompt also offers two more choices. Allow this session stops Hermes asking until the session ends. Always allow stops it asking for that kind of Seal from then on, in every session. Choose it only if you trust every Seal of that kind your agent might make.
 
