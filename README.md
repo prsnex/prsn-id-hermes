@@ -19,7 +19,7 @@ The PRSN ID plugin for Hermes connects AI agents operating with Hermes Agent or 
 ## What the plugin does
 
 - **The agent knows who it is.** At the start of each session, the plugin tells the agent its PRSN ID and whether it is verified. It reads this live from PRSN Connect. It tells the agent again after Hermes compacts a long session.
-- **It seals email and files.** Any person who receives a sealed email or file can check which PRSN sent it. Hermes asks you before each Seal, unless you choose otherwise. After a file Seal, the Seal's page opens in your browser. See more about Seals below.
+- **It seals email and files.** Any person who receives a sealed email or file can check which PRSN sent it. Hermes asks you before each Seal, unless you choose otherwise. After a file Seal, the Seal's page opens in the browser on the computer where Hermes runs. See more about Seals below.
 - **`/prsn` shows the state.** `/prsn status` shows this agent's PRSN ID. `/prsn setup` shows how to give the agent a PRSN ID.
 - **`/prsn about` names the code.** It shows the plugin's version and a code fingerprint, so you can tell which code Hermes has loaded.
 - **Hermes Desktop shows the state.** A status bar item shows this agent's PRSN ID state.
@@ -72,14 +72,14 @@ A Seal lets the person who receives an email or file check that it came from a p
 
 | Tool | What it seals |
 |---|---|
-| `prsn_id_seal_file` | A file. The Seal's page opens in your browser. Share the page's address with the reader. The reader opens it and drops their copy of the file on the page to check it is the same file. |
+| `prsn_id_seal_file` | A file. The Seal's page opens in the browser on the computer where Hermes runs. Share the page's address with the reader. The reader opens it and drops their copy of the file on the page to check it is the same file. |
 | `prsn_id_seal_message` | A whole email. PRSN Connect writes it as a new `.eml` file, sealed and ready to send. |
 
 The person who receives a sealed email opens the link in its footer. The page shows which PRSN sealed it, and when. The reader can also check that the email was sent to them. A Seal does not prove the email's words.
 
 A sealed email must be sent exactly as it was sealed. Hermes's email gateway, which answers mail sent to the agent, builds its own message. So it cannot send a sealed email unchanged.
 
-The agent can send the sealed `.eml` file with Himalaya, the email client that Hermes's bundled email skill uses. Himalaya's raw send passes the file to your mail server as it is.
+The agent can send the sealed `.eml` file with Himalaya 2, the email client that Hermes's bundled email skill uses. Himalaya 2's raw send passes the file to your mail server as it is. The command below is for Himalaya 2. Hermes's skill describes older Himalaya commands.
 
 ```bash
 himalaya smtp send -f you@example.com -t reader@example.com -- /path/to/sealed.eml
@@ -140,7 +140,7 @@ PRSN Connect serves every PRSN bound on this computer under the same user accoun
 - For the Desktop status item, its backend route may start a second copy of `prsn-gateway-mcp`. That copy lives as long as the route's process. It reads the state at most once every fifteen minutes.
 - It writes the last state it read to `status.json` in its own data folder, for the Desktop status item. That file holds a name, a yes or no, a heartbeat time and words. It holds no token and no address.
 - PRSN Connect makes the calls to `api.prsnid.ai`. A Seal's link opens `verify.prsnid.ai`.
-- After a file Seal, it opens the Seal's page at `verify.prsnid.ai` in your default browser. Hermes masks the link's signed part in the agent's replies, so the page opens for you instead. It opens no other address.
+- After a file Seal, it opens the Seal's page at `verify.prsnid.ai` in the default browser of the computer where Hermes runs. Hermes masks the link's signed part in the agent's replies, so the page opens there instead. It opens no other address. On Linux it opens the page only when a display is present.
 - With the `server_log` setting on, it writes PRSN Connect's server log to `server.log` in its own data folder. That log holds addresses and connection states. It holds no token.
 - The plugin makes no network call of its own. It stores no credential. It sends no telemetry.
 

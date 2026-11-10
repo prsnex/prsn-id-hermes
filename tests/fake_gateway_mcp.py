@@ -31,6 +31,9 @@ PROFILE = {
 }
 
 
+# A Seal link of the real shape: the 43-character id, then the signed statement.
+SEAL_LINK = "https://verify.prsnid.ai/s/" + "A" * 43 + "#eyJ2IjoxfQ.MEUCIQ"
+
 def answer(tool: str, arguments: dict, address: str, mode: str = "normal") -> dict:
     if tool == "get_profile":
         identity = dict(PROFILE["identity"])
@@ -41,7 +44,7 @@ def answer(tool: str, arguments: dict, address: str, mode: str = "normal") -> di
         return {"gateway_state": "connected", "ok": True, "prsn_address": address,
                 "session_valid": True}
     if tool in ("seal_message", "seal_email", "seal_file"):
-        return {"ok": True, "tool": tool, "link": "https://verify.prsnid.ai/s/test"}
+        return {"ok": True, "tool": tool, "link": SEAL_LINK}
     return {"error": f"unknown tool {tool}"}
 
 

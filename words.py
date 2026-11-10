@@ -145,9 +145,9 @@ TOOL_DESCRIPTIONS = {
         "on which device, and when. The reader drops their copy on the page to check it is the same "
         "file. Give the file's absolute path on this computer. This works on the gateway's local "
         "socket only, not from a container. Seals expire. PRSN ID's default applies unless you give "
-        "retention_seconds. After the Seal, the plugin opens its page in your human's browser. Hermes "
-        "may shorten the link in your reply, so do not repeat the link. Tell your human to copy the "
-        "page's address from the browser to share it."),
+        "retention_seconds. After the Seal, the plugin opens its page in the browser on the computer "
+        "where Hermes runs. Hermes may shorten the link in your reply, so do not repeat the link. Tell "
+        "your human to copy the page's address from that browser to share it."),
 }
 
 PARAMETER_DESCRIPTIONS = {
@@ -161,12 +161,14 @@ PARAMETER_DESCRIPTIONS = {
 
 # -- after a file Seal: the page opens for the human, since Hermes may shorten the link in a reply --
 
-FILE_SEAL_PAGE_OPENED = ("The Seal's page is open in your human's browser. Hermes may shorten the "
-                         "link in your reply, so do not repeat it. Tell your human the page is open, "
-                         "and that they can copy its address from the browser to share it.")
-FILE_SEAL_PAGE_NOT_OPENED = ("The Seal is made, but its page could not be opened in a browser here. "
-                             "Hermes may shorten the link in your reply. Tell your human the Seal's id "
-                             "and that its full link is in this tool's result.")
+FILE_SEAL_PAGE_OPENED = ("The Seal's page is open in the browser on the computer where Hermes runs. "
+                         "Hermes may shorten the link in your reply, so do not repeat it. Tell your "
+                         "human the page is open there, and that they can copy its address from that "
+                         "browser to share it.")
+FILE_SEAL_PAGE_NOT_OPENED = ("The Seal is made, but its page could not be opened on the computer where "
+                             "Hermes runs. Hermes may shorten the link in your reply, so no working "
+                             "link can be shown here. Tell your human the Seal is made and its page "
+                             "could not open. They can seal the file again where a browser can open it.")
 
 
 # -- the question Hermes asks the human before a Seal --------------------------------------------

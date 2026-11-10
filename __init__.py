@@ -13,6 +13,9 @@ from __future__ import annotations
 
 import json
 import logging
+import os
+import re
+import sys
 import threading
 import time
 import webbrowser
@@ -88,12 +91,21 @@ TOOLS = {
 }
 SEAL_TOOLS = {"prsn_id_seal_message", "prsn_id_seal_file"}
 
-# Only a Seal page of PRSN ID is ever opened in the human's browser.
-SEAL_PAGE_PREFIX = "https://verify.prsnid.ai/s/"
+# Only a Seal page of PRSN ID is ever opened: the Seal's 43-character id, then its signed statement.
+SEAL_LINK = re.compile(r"https://verify\.prsnid\.ai/s/[A-Za-z0-9_-]{43}#[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+")
+
+
+def has_display() -> bool:
+    """On Linux with no display, Python's browser opener can run a console browser and wait."""
+    if sys.platform.startswith("linux"):
+        return bool(os.environ.get("DISPLAY") or os.environ.get("WAYLAND_DISPLAY"))
+    return True
 
 
 def open_in_browser(link: str) -> bool:
-    """Open a file Seal's page in the human's default browser. False if it could not be opened."""
+    """Open a file Seal's page in the default browser of the computer where Hermes runs."""
+    if not has_display():
+        return False
     try:
         return bool(webbrowser.open(link, new=2))
     except Exception:  # no browser here; the Seal itself is already made
@@ -227,7 +239,7 @@ class Runtime:
     def _open_seal_page(self, result: dict) -> None:
         """Hermes masks the link's signed part in the agent's reply, so the page opens for the human."""
         link = result.get("link")
-        if not (isinstance(link, str) and link.startswith(SEAL_PAGE_PREFIX)):
+        if not (isinstance(link, str) and SEAL_LINK.fullmatch(link)):
             return
         opened = self.open_page(link)
         result["page_opened"] = opened

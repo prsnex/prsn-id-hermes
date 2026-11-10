@@ -19,6 +19,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from test_prsn_gateway import DiscoveryFile, entry_json  # noqa: E402
+from fake_gateway_mcp import SEAL_LINK  # noqa: E402
 
 
 def load_plugin():
@@ -143,10 +144,10 @@ class TestTools(RuntimeCase):
     def test_a_file_seal_opens_its_page_for_the_human(self):
         rt = self.runtime()
         out = json.loads(rt.handle_tool("prsn_id_seal_file", {"path": "/tmp/x"}))
-        self.assertEqual(self.opened, ["https://verify.prsnid.ai/s/test"])
+        self.assertEqual(self.opened, [SEAL_LINK])
         self.assertTrue(out["page_opened"])
         self.assertEqual(out["note"], words.FILE_SEAL_PAGE_OPENED)
-        self.assertEqual(out["link"], "https://verify.prsnid.ai/s/test")  # the result keeps the link
+        self.assertEqual(out["link"], SEAL_LINK)  # the result keeps the link
 
     def test_no_browser_still_gives_the_seal_and_says_so(self):
         rt = self.runtime()
@@ -163,14 +164,30 @@ class TestTools(RuntimeCase):
 
     def test_only_a_prsn_id_seal_page_is_ever_opened(self):
         rt = self.runtime()
-        rt.gateway.call = lambda name, args=None, **kw: {"ok": True, "link": "https://example.com/s/x"}
-        out = json.loads(rt.handle_tool("prsn_id_seal_file", {"path": "/tmp/x"}))
+        for link in ("https://example.com/s/x",
+                     "https://verify.prsnid.ai/s/../x",
+                     "https://verify.prsnid.ai/s/" + "A" * 43,
+                     "https://verify.prsnid.ai/s/" + "A" * 43 + "#eyJ2IjoxfQ.MEUC/../x",
+                     "https://verify.prsnid.ai.example.com/s/" + "A" * 43 + "#eyJ2.MEUC"):
+            rt.gateway.call = lambda name, args=None, _l=link, **kw: {"ok": True, "link": _l}
+            out = json.loads(rt.handle_tool("prsn_id_seal_file", {"path": "/tmp/x"}))
+            self.assertNotIn("page_opened", out, link)
         self.assertEqual(self.opened, [])
-        self.assertNotIn("page_opened", out)
+
+    def test_linux_with_no_display_opens_nothing(self):
+        with mock.patch.object(plugin.sys, "platform", "linux"), \
+                mock.patch.dict(plugin.os.environ, {}, clear=True), \
+                mock.patch.object(plugin.webbrowser, "open") as opener:
+            self.assertFalse(plugin.open_in_browser(SEAL_LINK))
+            opener.assert_not_called()
+        with mock.patch.object(plugin.sys, "platform", "linux"), \
+                mock.patch.dict(plugin.os.environ, {"WAYLAND_DISPLAY": "wayland-0"}, clear=True), \
+                mock.patch.object(plugin.webbrowser, "open", return_value=True):
+            self.assertTrue(plugin.open_in_browser(SEAL_LINK))
 
     def test_a_raising_browser_is_caught(self):
         with mock.patch.object(plugin.webbrowser, "open", side_effect=RuntimeError("no display")):
-            self.assertFalse(plugin.open_in_browser("https://verify.prsnid.ai/s/test"))
+            self.assertFalse(plugin.open_in_browser(SEAL_LINK))
 
     def test_a_prsn_not_verified_now_is_told_plainly_it_cannot_seal(self):
         rt = self.runtime(mode="unverified")
