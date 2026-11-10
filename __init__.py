@@ -4,7 +4,7 @@ PRSN ID binds an AI agent to a signing key on its device and to a human guardian
 it, so that anyone can check it is bound and current. This plugin connects a Hermes agent to its
 PRSN ID through PRSN Connect, the desktop app that holds the key.
 
-It offers five of PRSN Connect's identity tools, two that read and three that seal. Hermes asks
+It offers four of PRSN Connect's identity tools, two that read and two that seal. Hermes asks
 the human before every Seal. At the first turn, and again after a compaction, it tells the agent
 who it is, read live. It looks up no other agent. ``/prsn`` shows the state.
 """
@@ -15,9 +15,10 @@ import json
 import logging
 import threading
 import time
+import webbrowser
 from collections import OrderedDict
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Callable, Optional
 
 from . import prsn_gateway as pg
 from . import words
@@ -83,10 +84,21 @@ TOOLS = {
     "prsn_id_profile": "get_profile",
     "prsn_id_status": "get_gateway_status",
     "prsn_id_seal_message": "seal_message",
-    "prsn_id_seal_email": "seal_email",
     "prsn_id_seal_file": "seal_file",
 }
-SEAL_TOOLS = {"prsn_id_seal_message", "prsn_id_seal_email", "prsn_id_seal_file"}
+SEAL_TOOLS = {"prsn_id_seal_message", "prsn_id_seal_file"}
+
+# Only a Seal page of PRSN ID is ever opened in the human's browser.
+SEAL_PAGE_PREFIX = "https://verify.prsnid.ai/s/"
+
+
+def open_in_browser(link: str) -> bool:
+    """Open a file Seal's page in the human's default browser. False if it could not be opened."""
+    try:
+        return bool(webbrowser.open(link, new=2))
+    except Exception:  # no browser here; the Seal itself is already made
+        logger.debug("prsn-id: Seal page not opened", exc_info=True)
+        return False
 
 # A hook callback past 30 seconds is skipped by Hermes; the turn's reads stay well inside it.
 HOOK_BUDGET_SECONDS = 20.0
@@ -95,7 +107,7 @@ MAX_SESSIONS_REMEMBERED = 200
 
 
 def _load_tool_schemas() -> dict[str, dict[str, Any]]:
-    """The five tools' input schemas as PRSN Connect's server gave them, with plain descriptions."""
+    """The four tools' input schemas as PRSN Connect's server gave them, with plain descriptions."""
     data = json.loads(Path(__file__).with_name("gateway_tools.json").read_text(encoding="utf-8"))
     schemas = {}
     for hermes_name, gateway_name in TOOLS.items():
@@ -140,8 +152,10 @@ class Runtime:
     """One per profile: the gateway, the session memory, and the plugin's settings."""
 
     def __init__(self, ctx: Any, gateway: Optional[pg.Gateway] = None,
-                 status_folder: Optional[Path] = None, record_status: bool = True):
+                 status_folder: Optional[Path] = None, record_status: bool = True,
+                 open_page: Optional[Callable[[str], bool]] = None):
         self.ctx = ctx
+        self.open_page = open_page or open_in_browser
         self.gateway = gateway or pg.Gateway(prsn_name=self.prsn_name, server_log=self.server_log_path)
         self.sessions = _Sessions()
         self.status_folder = status_folder
@@ -206,7 +220,18 @@ class Runtime:
             result = self.gateway.call(gateway_name, args or {})
         except pg.GatewayError as exc:
             return json.dumps({"error": words.for_error(exc)})
+        if hermes_name == "prsn_id_seal_file" and isinstance(result, dict):
+            self._open_seal_page(result)
         return json.dumps(result if isinstance(result, (dict, list)) else {"result": result})
+
+    def _open_seal_page(self, result: dict) -> None:
+        """Hermes masks the link's signed part in the agent's reply, so the page opens for the human."""
+        link = result.get("link")
+        if not (isinstance(link, str) and link.startswith(SEAL_PAGE_PREFIX)):
+            return
+        opened = self.open_page(link)
+        result["page_opened"] = opened
+        result["note"] = words.FILE_SEAL_PAGE_OPENED if opened else words.FILE_SEAL_PAGE_NOT_OPENED
 
     def _unverified_refusal(self) -> Optional[str]:
         """Say plainly, before trying, that a PRSN not yet verified cannot seal."""

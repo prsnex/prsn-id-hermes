@@ -9,7 +9,6 @@ provides_tools:
   - prsn_id_profile
   - prsn_id_status
   - prsn_id_seal_message
-  - prsn_id_seal_email
   - prsn_id_seal_file
 provides_hooks:
   - pre_tool_call

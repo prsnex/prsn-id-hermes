@@ -19,12 +19,12 @@ The PRSN ID plugin for Hermes connects AI agents operating with Hermes Agent or 
 ## What the plugin does
 
 - **The agent knows who it is.** At the start of each session, the plugin tells the agent its PRSN ID and whether it is verified. It reads this live from PRSN Connect. It tells the agent again after Hermes compacts a long session.
-- **It seals email and files.** Any person who receives a sealed email or file can check which PRSN sent it. Hermes asks you before each Seal, unless you choose otherwise. See more about Seals below.
+- **It seals email and files.** Any person who receives a sealed email or file can check which PRSN sent it. Hermes asks you before each Seal, unless you choose otherwise. After a file Seal, the Seal's page opens in your browser. See more about Seals below.
 - **`/prsn` shows the state.** `/prsn status` shows this agent's PRSN ID. `/prsn setup` shows how to give the agent a PRSN ID.
 - **`/prsn about` names the code.** It shows the plugin's version and a code fingerprint, so you can tell which code Hermes has loaded.
 - **Hermes Desktop shows the state.** A status bar item shows this agent's PRSN ID state.
 
-The plugin runs no separate program or service of its own, and it keeps no keys or tokens. It offers five of the identity tools that PRSN Connect already provides. Two read and three seal. It never looks up another agent. It never offers purchases, credential issuing or sharing links. It reaches the PRSN ID platform only through PRSN Connect.
+The plugin runs no separate program or service of its own, and it keeps no keys or tokens. It offers four of the identity tools that PRSN Connect already provides. Two read and two seal. It never looks up another agent. It never offers purchases, credential issuing or sharing links. It reaches the PRSN ID platform only through PRSN Connect.
 
 
 ## Give your agent PRSN ID
@@ -68,13 +68,12 @@ hermes config set plugins.entries.prsn-id.settings.prsn_name your-agent.prsn.eth
 
 ## Seals
 
-A Seal lets the person who receives an email or file check that it came from a particular AI agent. The plugin offers three Seal tools.
+A Seal lets the person who receives an email or file check that it came from a particular AI agent. The plugin offers two Seal tools.
 
 | Tool | What it seals |
 |---|---|
-| `prsn_id_seal_file` | A file. The agent gets a link. The reader opens the link and drops their copy of the file on the page to check it is the same file. |
+| `prsn_id_seal_file` | A file. The Seal's page opens in your browser. Share the page's address with the reader. The reader opens it and drops their copy of the file on the page to check it is the same file. |
 | `prsn_id_seal_message` | A whole email. PRSN Connect writes it as a new `.eml` file, sealed and ready to send. |
-| `prsn_id_seal_email` | An email the agent is about to send another way. It returns a header and a footer with a link, to add before sending. |
 
 The person who receives a sealed email opens the link in its footer. The page shows which PRSN sealed it, and when. The reader can also check that the email was sent to them. A Seal does not prove the email's words.
 
@@ -141,6 +140,7 @@ PRSN Connect serves every PRSN bound on this computer under the same user accoun
 - For the Desktop status item, its backend route may start a second copy of `prsn-gateway-mcp`. That copy lives as long as the route's process. It reads the state at most once every fifteen minutes.
 - It writes the last state it read to `status.json` in its own data folder, for the Desktop status item. That file holds a name, a yes or no, a heartbeat time and words. It holds no token and no address.
 - PRSN Connect makes the calls to `api.prsnid.ai`. A Seal's link opens `verify.prsnid.ai`.
+- After a file Seal, it opens the Seal's page at `verify.prsnid.ai` in your default browser. Hermes masks the link's signed part in the agent's replies, so the page opens for you instead. It opens no other address.
 - With the `server_log` setting on, it writes PRSN Connect's server log to `server.log` in its own data folder. That log holds addresses and connection states. It holds no token.
 - The plugin makes no network call of its own. It stores no credential. It sends no telemetry.
 

@@ -139,19 +139,15 @@ TOOL_DESCRIPTIONS = {
         "Date itself. The message has a plain and an HTML version, and each ends with the Seal's "
         "link. Send the file's bytes unchanged. A Seal does not prove the words of the email. Never "
         "pass Bcc. Add Bcc recipients only when you send."),
-    "seal_email": (
-        "Seal an email you are about to send. The device key signs the envelope. That covers From, "
-        "Message-ID, Date, To and Cc as keyed digests, the attachment count, and the subject if you "
-        "include it. It returns the PRSN-Seal header and a footer with the link. Add both before "
-        "sending. Set Message-ID and Date before sealing, and do not change them after. A Seal does "
-        "not prove the words of the email. Never pass Bcc."),
     "seal_file": (
         "Seal a file you are sending. The device key signs a statement of the file's name, size and "
         "a keyed digest. You get a link that anyone can open. It shows which PRSN sealed the file, "
         "on which device, and when. The reader drops their copy on the page to check it is the same "
         "file. Give the file's absolute path on this computer. This works on the gateway's local "
         "socket only, not from a container. Seals expire. PRSN ID's default applies unless you give "
-        "retention_seconds."),
+        "retention_seconds. After the Seal, the plugin opens its page in your human's browser. Hermes "
+        "may shorten the link in your reply, so do not repeat the link. Tell your human to copy the "
+        "page's address from the browser to share it."),
 }
 
 PARAMETER_DESCRIPTIONS = {
@@ -160,9 +156,17 @@ PARAMETER_DESCRIPTIONS = {
                                  "is rendered."),
     ("seal_message", "output_path"): ("Where to write the finished message. Give an absolute path "
                                       "that ends in .eml and does not exist yet."),
-    ("seal_email", "subject"): ("The subject. It is sealed only if include_subject is true, and it "
-                                "is cut to 120 characters."),
 }
+
+
+# -- after a file Seal: the page opens for the human, since Hermes may shorten the link in a reply --
+
+FILE_SEAL_PAGE_OPENED = ("The Seal's page is open in your human's browser. Hermes may shorten the "
+                         "link in your reply, so do not repeat it. Tell your human the page is open, "
+                         "and that they can copy its address from the browser to share it.")
+FILE_SEAL_PAGE_NOT_OPENED = ("The Seal is made, but its page could not be opened in a browser here. "
+                             "Hermes may shorten the link in your reply. Tell your human the Seal's id "
+                             "and that its full link is in this tool's result.")
 
 
 # -- the question Hermes asks the human before a Seal --------------------------------------------

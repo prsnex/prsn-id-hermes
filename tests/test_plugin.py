@@ -12,6 +12,7 @@ import sys
 import tempfile
 import types
 import unittest
+from unittest import mock
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -73,6 +74,12 @@ class TestRegister(unittest.TestCase):
                           "discard_credential", "get_verification_url", "identify_as"):
             self.assertNotIn(forbidden, plugin.TOOLS.values())
 
+    def test_the_header_and_footer_email_seal_is_not_offered(self):
+        # Hermes masks the statement in what the agent writes, so the header and footer would break.
+        self.assertNotIn("prsn_id_seal_email", plugin.TOOLS)
+        self.assertNotIn("seal_email", plugin.TOOLS.values())
+        self.assertEqual(plugin.SEAL_TOOLS, {"prsn_id_seal_message", "prsn_id_seal_file"})
+
     def test_seal_tools_keep_connects_required_fields(self):
         schemas = plugin._load_tool_schemas()
         self.assertEqual(schemas["prsn_id_seal_file"]["parameters"]["required"], ["path"])
@@ -89,7 +96,15 @@ class RuntimeCase(unittest.TestCase):
         status_dir = tempfile.TemporaryDirectory()
         self.addCleanup(status_dir.cleanup)
         self.status_folder = Path(status_dir.name)
-        return plugin.Runtime(ctx, gateway=gateway, status_folder=self.status_folder)
+        self.opened = []  # pages the plugin asked the browser to open; no real browser in tests
+        self.browser_works = True
+
+        def fake_open(link):
+            self.opened.append(link)
+            return self.browser_works
+
+        return plugin.Runtime(ctx, gateway=gateway, status_folder=self.status_folder,
+                              open_page=fake_open)
 
 
 class TestApproval(RuntimeCase):
@@ -124,6 +139,38 @@ class TestTools(RuntimeCase):
         rt = self.runtime()
         out = json.loads(rt.handle_tool("prsn_id_seal_file", {"path": "/tmp/x"}))
         self.assertTrue(out["ok"])
+
+    def test_a_file_seal_opens_its_page_for_the_human(self):
+        rt = self.runtime()
+        out = json.loads(rt.handle_tool("prsn_id_seal_file", {"path": "/tmp/x"}))
+        self.assertEqual(self.opened, ["https://verify.prsnid.ai/s/test"])
+        self.assertTrue(out["page_opened"])
+        self.assertEqual(out["note"], words.FILE_SEAL_PAGE_OPENED)
+        self.assertEqual(out["link"], "https://verify.prsnid.ai/s/test")  # the result keeps the link
+
+    def test_no_browser_still_gives_the_seal_and_says_so(self):
+        rt = self.runtime()
+        self.browser_works = False
+        out = json.loads(rt.handle_tool("prsn_id_seal_file", {"path": "/tmp/x"}))
+        self.assertTrue(out["ok"])
+        self.assertFalse(out["page_opened"])
+        self.assertEqual(out["note"], words.FILE_SEAL_PAGE_NOT_OPENED)
+
+    def test_an_email_seal_opens_no_page(self):
+        rt = self.runtime()
+        json.loads(rt.handle_tool("prsn_id_seal_message", {"to": ["a@example.com"]}))
+        self.assertEqual(self.opened, [])
+
+    def test_only_a_prsn_id_seal_page_is_ever_opened(self):
+        rt = self.runtime()
+        rt.gateway.call = lambda name, args=None, **kw: {"ok": True, "link": "https://example.com/s/x"}
+        out = json.loads(rt.handle_tool("prsn_id_seal_file", {"path": "/tmp/x"}))
+        self.assertEqual(self.opened, [])
+        self.assertNotIn("page_opened", out)
+
+    def test_a_raising_browser_is_caught(self):
+        with mock.patch.object(plugin.webbrowser, "open", side_effect=RuntimeError("no display")):
+            self.assertFalse(plugin.open_in_browser("https://verify.prsnid.ai/s/test"))
 
     def test_a_prsn_not_verified_now_is_told_plainly_it_cannot_seal(self):
         rt = self.runtime(mode="unverified")
@@ -412,6 +459,7 @@ class TestWords(unittest.TestCase):
                    words.identity_line("a.prsn.eth", False),
                    words.approve_seal("seal_message", {"to": ["a@example.com"]}, "a.prsn.eth"),
                    words.approve_seal("seal_file", {"path": "/a/b.pdf"}, None),
+                   words.FILE_SEAL_PAGE_OPENED, words.FILE_SEAL_PAGE_NOT_OPENED,
                    words.heartbeat_ago("2026-11-01T00:00:00Z"), words.CONTEXT_LABEL,
                    words.status_line({"name": "a.prsn.eth", "verified": True, "last_beat": None}),
                    words.status_line({"name": "a.prsn.eth", "verified": False, "last_beat": None}),
