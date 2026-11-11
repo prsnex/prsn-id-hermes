@@ -11,6 +11,7 @@ who it is, read live. It looks up no other agent. ``/prsn`` shows the state.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import logging
 import os
@@ -95,12 +96,14 @@ SEAL_TOOLS = {"prsn_id_seal_message", "prsn_id_seal_file"}
 # can reach PRSN Connect directly, around this plugin's tools and their approval (seen
 # 2026-11-10: after a refusal, an agent planned to start PRSN Connect's own server itself).
 COMMAND_AND_FILE_TOOLS = {"terminal", "process_manage", "execute_code",
-                          "read_file", "write_file", "patch", "search_files"}
+                          "read_file", "write_file", "patch", "search_files",
+                          "skill_manage", "cronjob_manage", "browser_exec", "browser_cdp"}
 # What such a call names when it reaches PRSN Connect: its server, its discovery folder, its
 # own folders and pipe ("prsn-connect", "PRSN Connect"), or its gateway's local ports. A guard
 # against an agent going round the plugin, not a wall: a determined agent can hide a name.
 DIRECT_TO_PRSN_CONNECT = re.compile(
-    r"prsn-gateway-mcp|\.prsn-id|prsn[-_ ]?connect|(?:127\.0\.0\.1|localhost):733\d",
+    r"prsn-gateway-mcp|\.prsn-id|gateway\.json|prsn[-_ ]?connect"
+    r"|(?:127\.0\.0\.1|localhost|host\.docker\.internal|host\.containers?\.internal):733\d",
     re.IGNORECASE)
 
 # Only a Seal page of PRSN ID is ever opened: the Seal's 43-character id, then its signed statement.
@@ -270,10 +273,12 @@ class Runtime:
 
     def pre_tool_call(self, tool_name: str = "", args: Optional[dict] = None, **kwargs: Any):
         if tool_name in COMMAND_AND_FILE_TOOLS and self._reaches_prsn_connect(args):
+            # One key per call, so "Allow this session" or "Always allow" covers that call only
+            # and never switches the guard off for every later one.
             return {
                 "action": "approve",
                 "message": words.DIRECT_TO_PRSN_CONNECT,
-                "rule_key": "prsn-id:direct-to-prsn-connect",
+                "rule_key": f"prsn-id:direct-to-prsn-connect:{self._call_key(tool_name, args)}",
             }
         if tool_name not in SEAL_TOOLS:
             return None
@@ -282,6 +287,14 @@ class Runtime:
             "message": words.approve_seal(TOOLS[tool_name], args or {}, self.current_prsn()),
             "rule_key": f"prsn-id:{tool_name}",
         }
+
+    @staticmethod
+    def _call_key(tool_name: str, args: Optional[dict]) -> str:
+        try:
+            text = json.dumps([tool_name, args or {}], ensure_ascii=False, sort_keys=True, default=str)
+        except Exception:
+            text = f"{tool_name}:{args!r}"
+        return hashlib.sha256(text.encode("utf-8")).hexdigest()[:12]
 
     @staticmethod
     def _reaches_prsn_connect(args: Optional[dict]) -> bool:

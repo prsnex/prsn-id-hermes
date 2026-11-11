@@ -179,7 +179,7 @@ FILE_SEAL_PAGE_NOT_OPENED = ("The Seal is made, but its page could not be opened
 # -- after PRSN Connect refuses, and before a command that reaches PRSN Connect directly ------------
 
 AFTER_REFUSAL = ("Tell your human what was refused and why, in PRSN Connect's words. Do not look for "
-                 "another way to do it, such as starting PRSN Connect's own server or reading its files.")
+                 "another way to do it.")
 DIRECT_TO_PRSN_CONNECT = ("This reaches PRSN Connect directly, around the PRSN ID plugin's tools, so no "
                           "Seal approval covers what it does. Run it only if you asked for it.")
 

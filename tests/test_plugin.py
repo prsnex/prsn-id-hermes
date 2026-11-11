@@ -222,6 +222,10 @@ class TestDirectToPrsnConnect(RuntimeCase):
         ("read_file", {"path": "C:/Users/a/AppData/Roaming/prsn-connect/tokens/0xabc.token"}),
         ("terminal", {"command": "curl -s http://127.0.0.1:7331/self/capabilities"}),
         ("process_manage", {"command": "start", "args": ["localhost:7334"]}),
+        ("browser_cdp", {"url": "http://127.0.0.1:7331/self/capabilities"}),
+        ("skill_manage", {"action": "create", "content": "subprocess.run(['prsn-gateway-mcp', '--prsn-address', a])"}),
+        ("cronjob_manage", {"script": "curl http://host.docker.internal:7331/"}),
+        ("terminal", {"command": "find / -name gateway.json"}),
     ]
     LEAVES = [
         ("terminal", {"command": "ls ~/Desktop"}),
@@ -238,7 +242,15 @@ class TestDirectToPrsnConnect(RuntimeCase):
             self.assertIsNotNone(directive, (tool, args))
             self.assertEqual(directive["action"], "approve")
             self.assertEqual(directive["message"], words.DIRECT_TO_PRSN_CONNECT)
-            self.assertEqual(directive["rule_key"], "prsn-id:direct-to-prsn-connect")
+            self.assertTrue(directive["rule_key"].startswith("prsn-id:direct-to-prsn-connect:"))
+
+    def test_each_call_has_its_own_rule_key(self):
+        # One key for every call would let one "Always allow" switch the guard off for good.
+        rt = self.runtime()
+        keys = {rt.pre_tool_call(tool_name=t, args=a)["rule_key"] for t, a in self.REACHES}
+        self.assertEqual(len(keys), len(self.REACHES))
+        again = rt.pre_tool_call(tool_name=self.REACHES[0][0], args=dict(self.REACHES[0][1]))
+        self.assertIn(again["rule_key"], keys)  # the same call asks under the same key
 
     def test_other_commands_and_tools_are_left_alone(self):
         rt = self.runtime()
