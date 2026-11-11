@@ -132,12 +132,35 @@ class TestApproval(RuntimeCase):
         file = rt.pre_tool_call(tool_name="prsn_id_seal_file", args={"path": "/tmp/q3/report.pdf"})
         self.assertIn("the file report.pdf", file["message"])
 
+    def test_the_card_names_a_messages_attachments(self):
+        """Gwen: the human sees every file a sealed message covers, not only its recipients."""
+        rt = self.runtime()
+        one = rt.pre_tool_call(tool_name="prsn_id_seal_message",
+                               args={"to": ["a@example.com"], "attachments": ["/tmp/q3/report.pdf"]})
+        self.assertIn("an email to a@example.com, with the attachment report.pdf", one["message"])
+        two = rt.pre_tool_call(tool_name="prsn_id_seal_message",
+                               args={"to": ["a@example.com"],
+                                     "attachments": ["/tmp/q3/report.pdf", "C:\\Users\\a\\b.png"]})
+        self.assertIn("with the attachments report.pdf, b.png", two["message"])
+        none = rt.pre_tool_call(tool_name="prsn_id_seal_message", args={"to": ["a@example.com"]})
+        self.assertNotIn("attachment", none["message"])
+
 
 class TestTools(RuntimeCase):
     def test_profile_through_the_tool(self):
         rt = self.runtime()
         out = json.loads(rt.handle_tool("prsn_id_profile", {}))
         self.assertEqual(out["identity"]["ensName"], "test-prsn.prsn.eth")
+
+    def test_the_profile_names_its_address_for_what_it_is(self):
+        """Chris, 2026-11-10: the address is not a wallet, and the agent must not call it one."""
+        rt = self.runtime()
+        out = json.loads(rt.handle_tool("prsn_id_profile", {}))
+        self.assertNotIn("walletAddress", out["identity"])
+        self.assertEqual(out["identity"]["platformAddress"], "0xabc")
+        self.assertIn("It is not a wallet", out["identity"]["platformAddressIs"])
+        self.assertIn("offers no purchases", out["throughThisPlugin"])
+        self.assertNotIn("wallet", words.TOOL_DESCRIPTIONS["get_profile"].replace("not a wallet", ""))
 
     def test_a_seal_by_a_verified_prsn_goes_through(self):
         rt = self.runtime()
@@ -531,6 +554,8 @@ class TestWords(unittest.TestCase):
                    words.identity_line("a.prsn.eth", True, "g.prsn.eth"),
                    words.identity_line("a.prsn.eth", False),
                    words.approve_seal("seal_message", {"to": ["a@example.com"]}, "a.prsn.eth"),
+                   words.approve_seal("seal_message", {"to": ["a@example.com"],
+                                                       "attachments": ["/a/b.pdf", "/a/c.png"]}, None),
                    words.approve_seal("seal_file", {"path": "/a/b.pdf"}, None),
                    words.FILE_SEAL_PAGE_OPENED, words.FILE_SEAL_PAGE_NOT_OPENED,
                    words.AFTER_REFUSAL, words.DIRECT_TO_PRSN_CONNECT,

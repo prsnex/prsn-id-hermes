@@ -249,6 +249,8 @@ class Runtime:
             return json.dumps({"error": words.for_error(exc), "note": words.AFTER_REFUSAL})
         if hermes_name == "prsn_id_seal_file" and isinstance(result, dict):
             self._open_seal_page(result)
+        if hermes_name == "prsn_id_profile" and isinstance(result, dict):
+            result = words.explain_profile(result)
         return json.dumps(result if isinstance(result, (dict, list)) else {"result": result})
 
     def _open_seal_page(self, result: dict) -> None:

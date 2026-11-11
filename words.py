@@ -135,7 +135,9 @@ def identity_line(name: Optional[str], verified: Optional[bool], guardian: Optio
 
 TOOL_DESCRIPTIONS = {
     "get_profile": ("Get this agent's PRSN ID profile. It holds the PRSN's name, tier, "
-                    "autonomy level, last heartbeat, and whether it is verified now."),
+                    "autonomy level, last heartbeat, and whether it is verified now. Its address "
+                    "is an identifier PRSN ID derives, not a wallet. Its permissions are what the "
+                    "PRSN may do on PRSN ID, not what this plugin offers."),
     "get_gateway_status": ("Check the connection to PRSN Connect's gateway. It shows whether "
                            "this PRSN has an active platform session."),
     "seal_message": (
@@ -186,6 +188,34 @@ DIRECT_TO_PRSN_CONNECT = ("This names PRSN Connect or its files and may reach it
                           "ID plugin's tools. No Seal approval covers that. Run it only if you asked for it.")
 
 
+# -- what the profile tool's result says about itself ----------------------------------------------
+# The platform names the address field `walletAddress`, and an agent repeats the word. The dashboard
+# tells a person the truth (`platformAddressHint`); these say it to the agent (Chris, 2026-11-10).
+
+PLATFORM_ADDRESS = ("An identifier PRSN ID derives for this PRSN. It is not a wallet. No key stands "
+                    "behind it, so anything sent to it is lost. Never call it a wallet, and never "
+                    "offer it to receive funds.")
+
+PLUGIN_OFFERS = ("Through this plugin, this agent can read its PRSN ID profile and status, and seal "
+                 "email and files with its human's yes. The permissions in this profile are what the "
+                 "PRSN may do on PRSN ID itself. This plugin offers no purchases, service requests "
+                 "or credential issuing.")
+
+
+def explain_profile(profile: dict) -> dict:
+    """The profile as the agent should read it: the address named for what it is, and the plugin's
+    own reach beside the PRSN's permissions."""
+    out = dict(profile)
+    identity = out.get("identity")
+    if isinstance(identity, dict) and "walletAddress" in identity:
+        identity = dict(identity)
+        identity["platformAddress"] = identity.pop("walletAddress")
+        identity["platformAddressIs"] = PLATFORM_ADDRESS
+        out["identity"] = identity
+    out["throughThisPlugin"] = PLUGIN_OFFERS
+    return out
+
+
 # -- the question Hermes asks the human before a Seal --------------------------------------------
 
 def approve_seal(tool: str, args: dict, prsn: Optional[str]) -> str:
@@ -198,6 +228,13 @@ def approve_seal(tool: str, args: dict, prsn: Optional[str]) -> str:
         to = args.get("to") or []
         recipients = ", ".join(str(t) for t in to) if isinstance(to, list) else str(to)
         what = f"an email to {recipients}" if recipients else "an email"
+        # The card names the attachments too, so the human sees every file the Seal covers (Gwen).
+        attached = args.get("attachments") or []
+        if isinstance(attached, str):
+            attached = [attached]
+        names = [str(a).replace("\\", "/").rsplit("/", 1)[-1] for a in attached]
+        if names:
+            what += f", with {'the attachment' if len(names) == 1 else 'the attachments'} {', '.join(names)}"
     return (f"Seal {what} as {who}. "
             f"A Seal speaks for {who}, and anyone with its link can check it.")
 
