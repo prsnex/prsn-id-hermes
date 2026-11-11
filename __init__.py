@@ -91,6 +91,18 @@ TOOLS = {
 }
 SEAL_TOOLS = {"prsn_id_seal_message", "prsn_id_seal_file"}
 
+# Hermes's tools that run commands or touch files. Through them an agent running as its human
+# can reach PRSN Connect directly, around this plugin's tools and their approval (seen
+# 2026-11-10: after a refusal, an agent planned to start PRSN Connect's own server itself).
+COMMAND_AND_FILE_TOOLS = {"terminal", "process_manage", "execute_code",
+                          "read_file", "write_file", "patch", "search_files"}
+# What such a call names when it reaches PRSN Connect: its server, its discovery folder, its
+# own folders and pipe ("prsn-connect", "PRSN Connect"), or its gateway's local ports. A guard
+# against an agent going round the plugin, not a wall: a determined agent can hide a name.
+DIRECT_TO_PRSN_CONNECT = re.compile(
+    r"prsn-gateway-mcp|\.prsn-id|prsn[-_ ]?connect|(?:127\.0\.0\.1|localhost):733\d",
+    re.IGNORECASE)
+
 # Only a Seal page of PRSN ID is ever opened: the Seal's 43-character id, then its signed statement.
 SEAL_LINK = re.compile(r"https://verify\.prsnid\.ai/s/[A-Za-z0-9_-]{43}#[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+")
 
@@ -227,11 +239,11 @@ class Runtime:
         if hermes_name in SEAL_TOOLS:
             refusal = self._unverified_refusal()
             if refusal:
-                return json.dumps({"error": refusal})
+                return json.dumps({"error": refusal, "note": words.AFTER_REFUSAL})
         try:
             result = self.gateway.call(gateway_name, args or {})
         except pg.GatewayError as exc:
-            return json.dumps({"error": words.for_error(exc)})
+            return json.dumps({"error": words.for_error(exc), "note": words.AFTER_REFUSAL})
         if hermes_name == "prsn_id_seal_file" and isinstance(result, dict):
             self._open_seal_page(result)
         return json.dumps(result if isinstance(result, (dict, list)) else {"result": result})
@@ -257,6 +269,12 @@ class Runtime:
     # -- hooks -------------------------------------------------------------------------------
 
     def pre_tool_call(self, tool_name: str = "", args: Optional[dict] = None, **kwargs: Any):
+        if tool_name in COMMAND_AND_FILE_TOOLS and self._reaches_prsn_connect(args):
+            return {
+                "action": "approve",
+                "message": words.DIRECT_TO_PRSN_CONNECT,
+                "rule_key": "prsn-id:direct-to-prsn-connect",
+            }
         if tool_name not in SEAL_TOOLS:
             return None
         return {
@@ -264,6 +282,14 @@ class Runtime:
             "message": words.approve_seal(TOOLS[tool_name], args or {}, self.current_prsn()),
             "rule_key": f"prsn-id:{tool_name}",
         }
+
+    @staticmethod
+    def _reaches_prsn_connect(args: Optional[dict]) -> bool:
+        try:
+            text = json.dumps(args or {}, ensure_ascii=False, default=str)
+        except Exception:  # a guard that cannot read the call asks rather than lets it pass
+            return True
+        return bool(DIRECT_TO_PRSN_CONNECT.search(text))
 
     def pre_llm_call(self, session_id: str = "", user_message: Any = None,
                      is_first_turn: bool = False, **kwargs: Any):

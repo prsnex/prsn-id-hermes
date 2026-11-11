@@ -42,7 +42,7 @@ When you enter the code, PRSN Connect binds the agent's key to this computer and
 
 1. Open Capabilities, then Plugins, and choose Install from Git.
 2. Paste `https://github.com/prsnex/prsn-id-hermes` and choose Review repository. Desktop shows what the repository holds before it installs anything.
-3. Pick the profile your agent uses. Make sure Enable agent plugin after install is on. Then choose Install.
+3. Pick the profile your agent uses. If Desktop offers Enable agent plugin after install, keep it on. Then choose Install.
 
 Desktop installs both halves of the plugin, the agent's and the status item's.
 
@@ -100,6 +100,8 @@ The prompt also offers two more choices. Allow this session stops Hermes asking 
 
 Hermes's own settings can also allow approvals in one-shot runs (`approvals.single_query_mode`) and in scheduled jobs (`approvals.cron_mode`). Each of these is your choice.
 
+The approval covers the plugin's Seal tools. An agent that can run commands as you could also reach PRSN Connect another way, for example by starting PRSN Connect's own server itself. So the plugin also asks you before any command or file action that names PRSN Connect, its server, its folders or its local gateway. Run it only if you asked for it. This catches an agent that goes around the plugin. It is not a wall, since a command can hide what it reaches. Keep Hermes's own approvals on for commands.
+
 
 ## Settings
 
@@ -130,7 +132,7 @@ The plugin is tested on macOS with Hermes 0.23.0 and PRSN Connect v0.2.0. An age
 
 ## Sharing a computer
 
-PRSN Connect serves every PRSN bound on this computer under the same user account. Any program running as that user can reach its gateway. On a shared computer, give each agent its own user account and its own PRSN Connect. PRSN ID does not keep one agent on a computer from using another agent's gateway. The user account does.
+PRSN Connect serves every PRSN bound on this computer under the same user account. Any program running as that user can reach its gateway, an agent's own commands included. On a shared computer, give each agent its own user account and its own PRSN Connect. PRSN ID does not keep one agent on a computer from using another agent's gateway. The user account does.
 
 
 ## What the plugin reads, runs and sends
@@ -140,6 +142,7 @@ PRSN Connect serves every PRSN bound on this computer under the same user accoun
 - For the Desktop status item, its backend route may start a second copy of `prsn-gateway-mcp`. That copy lives as long as the route's process. It reads the state at most once every fifteen minutes.
 - It writes the last state it read to `status.json` in its own data folder, for the Desktop status item. That file holds a name, a yes or no, a heartbeat time and words. It holds no token and no address.
 - PRSN Connect makes the calls to `api.prsnid.ai`. A Seal's link opens `verify.prsnid.ai`.
+- Before a command or file action that names PRSN Connect, its server, its folders or its local gateway, it asks you through Hermes's approval prompt.
 - After a file Seal, it opens the Seal's page at `verify.prsnid.ai` in the default browser of the computer where Hermes runs. Hermes masks the link's signed part in the agent's replies, so the page opens there instead. It opens no other address. On Linux it opens the page only when a display is present.
 - With the `server_log` setting on, it writes PRSN Connect's server log to `server.log` in its own data folder. That log holds addresses and connection states. It holds no token.
 - The plugin makes no network call of its own. It stores no credential. It sends no telemetry.

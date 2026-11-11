@@ -6,7 +6,7 @@ PRSN Connect's own words, when it gives them, are passed through unchanged inste
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Optional
 
 from . import prsn_gateway as pg
@@ -57,15 +57,20 @@ def for_error(exc: pg.GatewayError) -> str:
 
 
 def heartbeat_days(last_beat_at: Optional[str], now: Optional[datetime] = None) -> Optional[int]:
-    """Whole days since the last heartbeat, by UTC date; None when unknown."""
+    """Whole days since the last heartbeat, by this computer's own calendar date; None when unknown.
+
+    By UTC date, a heartbeat at 17:44 in UTC-6 read "yesterday" from 18:00 the same evening.
+    """
     if not last_beat_at:
         return None
     try:
         when = datetime.fromisoformat(last_beat_at.replace("Z", "+00:00"))
     except ValueError:
         return None
-    now = now or datetime.now(timezone.utc)
-    return max(0, (now.date() - when.astimezone(timezone.utc).date()).days)
+    now = now or datetime.now().astimezone()
+    if now.tzinfo is None:
+        now = now.astimezone()
+    return max(0, (now.date() - when.astimezone(now.tzinfo).date()).days)
 
 
 def heartbeat_ago(last_beat_at: Optional[str], now: Optional[datetime] = None) -> Optional[str]:
@@ -169,6 +174,14 @@ FILE_SEAL_PAGE_NOT_OPENED = ("The Seal is made, but its page could not be opened
                              "Hermes runs. Hermes may shorten the link in your reply, so no working "
                              "link can be shown here. Tell your human the Seal is made and its page "
                              "could not open. They can seal the file again where a browser can open it.")
+
+
+# -- after PRSN Connect refuses, and before a command that reaches PRSN Connect directly ------------
+
+AFTER_REFUSAL = ("Tell your human what was refused and why, in PRSN Connect's words. Do not look for "
+                 "another way to do it, such as starting PRSN Connect's own server or reading its files.")
+DIRECT_TO_PRSN_CONNECT = ("This reaches PRSN Connect directly, around the PRSN ID plugin's tools, so no "
+                          "Seal approval covers what it does. Run it only if you asked for it.")
 
 
 # -- the question Hermes asks the human before a Seal --------------------------------------------

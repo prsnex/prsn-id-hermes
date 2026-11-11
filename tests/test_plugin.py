@@ -7,12 +7,15 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import os
 import re
 import sys
 import tempfile
+import time
 import types
 import unittest
 from unittest import mock
+from datetime import datetime, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -200,6 +203,47 @@ class TestTools(RuntimeCase):
         rt = self.runtime(mode="refuse")
         out = json.loads(rt.handle_tool("prsn_id_status", {}))
         self.assertEqual(out["error"], "PRSN Connect is not running. Start it, then try again.")
+        self.assertEqual(out["note"], words.AFTER_REFUSAL)  # tell the human; no way around it
+
+    def test_a_prsn_not_verified_is_also_told_to_stop(self):
+        rt = self.runtime(mode="unverified")
+        out = json.loads(rt.handle_tool("prsn_id_seal_file", {"path": "/tmp/x"}))
+        self.assertEqual(out["note"], words.AFTER_REFUSAL)
+
+
+class TestDirectToPrsnConnect(RuntimeCase):
+    """Seen 2026-11-10: after a refusal an agent planned to start PRSN Connect's server itself."""
+
+    REACHES = [
+        ("terminal", {"command": "Get-Content $HOME\\.prsn-id\\gateway.json"}),
+        ("terminal", {"command": "cat ~/.prsn-id/gateway.json"}),
+        ("terminal", {"command": '"C:/Users/a/AppData/Local/PRSN Connect/prsn-gateway-mcp.exe" --prsn-address 0x1'}),
+        ("execute_code", {"code": "open(r'\\\\.\\pipe\\prsn-connect-efa2')"}),
+        ("read_file", {"path": "C:/Users/a/AppData/Roaming/prsn-connect/tokens/0xabc.token"}),
+        ("terminal", {"command": "curl -s http://127.0.0.1:7331/self/capabilities"}),
+        ("process_manage", {"command": "start", "args": ["localhost:7334"]}),
+    ]
+    LEAVES = [
+        ("terminal", {"command": "ls ~/Desktop"}),
+        ("terminal", {"command": "himalaya smtp send -f a@example.com -t b@example.com -- /tmp/x.eml"}),
+        ("read_file", {"path": "/home/a/notes.md"}),
+        ("session_search", {"query": "PRSN Connect"}),   # not a command or file tool
+        ("prsn_id_status", {}),
+    ]
+
+    def test_a_command_that_reaches_prsn_connect_asks_the_human(self):
+        rt = self.runtime()
+        for tool, args in self.REACHES:
+            directive = rt.pre_tool_call(tool_name=tool, args=args)
+            self.assertIsNotNone(directive, (tool, args))
+            self.assertEqual(directive["action"], "approve")
+            self.assertEqual(directive["message"], words.DIRECT_TO_PRSN_CONNECT)
+            self.assertEqual(directive["rule_key"], "prsn-id:direct-to-prsn-connect")
+
+    def test_other_commands_and_tools_are_left_alone(self):
+        rt = self.runtime()
+        for tool, args in self.LEAVES:
+            self.assertIsNone(rt.pre_tool_call(tool_name=tool, args=args), (tool, args))
 
 
 class TestTurns(RuntimeCase):
@@ -477,6 +521,7 @@ class TestWords(unittest.TestCase):
                    words.approve_seal("seal_message", {"to": ["a@example.com"]}, "a.prsn.eth"),
                    words.approve_seal("seal_file", {"path": "/a/b.pdf"}, None),
                    words.FILE_SEAL_PAGE_OPENED, words.FILE_SEAL_PAGE_NOT_OPENED,
+                   words.AFTER_REFUSAL, words.DIRECT_TO_PRSN_CONNECT,
                    words.heartbeat_ago("2026-11-01T00:00:00Z"), words.CONTEXT_LABEL,
                    words.status_line({"name": "a.prsn.eth", "verified": True, "last_beat": None}),
                    words.status_line({"name": "a.prsn.eth", "verified": False, "last_beat": None}),
@@ -533,6 +578,24 @@ class TestWords(unittest.TestCase):
 
     def test_registered_not_yet_verified_only_in_the_setup_words(self):
         self.assertIn("registered, not yet verified", words.SETUP)
+
+    @unittest.skipUnless(hasattr(time, "tzset"), "needs time.tzset")
+    def test_a_heartbeat_this_evening_reads_today(self):
+        # Chris's box, 2026-11-10: a beat at 17:44 UTC-6 read "yesterday" at 18:47, by UTC date.
+        class Clock(datetime):
+            @classmethod
+            def now(cls, tz=None):
+                instant = datetime(2026, 11, 11, 0, 47, tzinfo=timezone.utc)
+                return instant.astimezone(tz) if tz else datetime.fromtimestamp(instant.timestamp())
+        with mock.patch.dict(os.environ, {"TZ": "Etc/GMT+6"}):
+            time.tzset()
+            try:
+                with mock.patch.object(words, "datetime", Clock):
+                    self.assertEqual(words.heartbeat_ago("2026-11-10T23:44:12Z"), "Last heartbeat today.")
+                    self.assertEqual(words.heartbeat_ago("2026-11-09T23:44:12Z"), "Last heartbeat yesterday.")
+            finally:
+                pass
+        time.tzset()
 
     def test_heartbeat_words(self):
         from datetime import datetime, timezone
