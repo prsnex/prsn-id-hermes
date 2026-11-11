@@ -36,6 +36,8 @@ _FOR_CODE = {
                       f"It is the desktop app that holds this agent's PRSN ID. Get it at {CONNECT_PAGE}"),
     pg.NO_PRSN: ("PRSN Connect serves no PRSN on this computer yet. "
                  "Enter this agent's registration code in PRSN Connect to bind it."),
+    pg.NO_SERVER: ("PRSN Connect lists this computer's PRSN but names no way to start its identity tools. "
+                   "Update PRSN Connect to v0.2.1 or later, then restart it."),
     pg.CHOOSE_PRSN: ("PRSN Connect serves more than one PRSN on this computer. "
                      "Choose this agent's in the plugin's settings, under prsn_name."),
     pg.UNKNOWN_PRSN: ("PRSN Connect on this computer does not serve the PRSN named in the plugin's settings. "
@@ -180,8 +182,8 @@ FILE_SEAL_PAGE_NOT_OPENED = ("The Seal is made, but its page could not be opened
 
 AFTER_REFUSAL = ("Tell your human what was refused and why, in PRSN Connect's words. Do not look for "
                  "another way to do it.")
-DIRECT_TO_PRSN_CONNECT = ("This reaches PRSN Connect directly, around the PRSN ID plugin's tools, so no "
-                          "Seal approval covers what it does. Run it only if you asked for it.")
+DIRECT_TO_PRSN_CONNECT = ("This names PRSN Connect or its files and may reach it directly, around the PRSN "
+                          "ID plugin's tools. No Seal approval covers that. Run it only if you asked for it.")
 
 
 # -- the question Hermes asks the human before a Seal --------------------------------------------
@@ -207,6 +209,8 @@ def status_word(state: dict) -> str:
     error = state.get("error_code")
     if error in (pg.NO_DISCOVERY, pg.NO_PRSN):
         return "No PRSN ID here"
+    if error == pg.NO_SERVER:
+        return "Update PRSN Connect"
     if error or state.get("verified") is None:
         return "PRSN ID not checked"
     return "PRSN ID verified" if state.get("verified") else "PRSN ID not verified now"

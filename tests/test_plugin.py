@@ -540,6 +540,7 @@ class TestWords(unittest.TestCase):
                    words.status_line({"name": "a.prsn.eth", "verified": None}),
                    words.status_word({"verified": True}), words.status_word({"verified": False}),
                    words.status_word({"error_code": pg.NO_PRSN}),
+                   words.status_word({"error_code": pg.NO_SERVER}),
                    words.about("0.1.0", "abcdef123456"),
                    *re.findall(r"'([A-Z][^'\n]*)'", (ROOT / "desktop" / "plugin.js").read_text(encoding="utf-8"))]
         manifest = (ROOT / "plugin.yaml").read_text(encoding="utf-8")
@@ -608,6 +609,10 @@ class TestWords(unittest.TestCase):
             finally:
                 pass
         time.tzset()
+
+    def test_no_server_tells_the_human_to_update_prsn_connect(self):
+        self.assertEqual(words.status_word({"error_code": pg.NO_SERVER}), "Update PRSN Connect")
+        self.assertIn("Update PRSN Connect to v0.2.1 or later", words._FOR_CODE[pg.NO_SERVER])
 
     def test_heartbeat_words(self):
         from datetime import datetime, timezone

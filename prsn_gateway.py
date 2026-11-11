@@ -50,6 +50,7 @@ class GatewayError(Exception):
 NO_DISCOVERY = "no_discovery"          # gateway.json missing: PRSN Connect not installed or never run
 BAD_DISCOVERY = "bad_discovery"        # gateway.json unreadable or not the shape we know
 NO_PRSN = "no_prsn"                    # PRSN Connect serves no PRSN under this user account
+NO_SERVER = "no_server"                # PRSNs listed, none with a way to start its server (BUG-231)
 CHOOSE_PRSN = "choose_prsn"            # several PRSNs served, and the setting names none
 UNKNOWN_PRSN = "unknown_prsn"          # the setting names a PRSN this PRSN Connect does not serve
 GATEWAY_DISABLED = "gateway_disabled"  # the chosen PRSN's gateway is switched off in PRSN Connect
@@ -84,8 +85,9 @@ def read_discovery(path: Optional[Path] = None) -> list[PrsnEntry]:
         raise GatewayError(BAD_DISCOVERY, f"{path}: {exc.strerror}") from None
     try:
         data = json.loads(raw)
+        listed = data.get("prsns", [])
         entries = []
-        for item in data.get("prsns", []):
+        for item in listed:
             mcp = item.get("mcpConfig") or {}
             command, args = mcp.get("command"), mcp.get("args", [])
             if not isinstance(command, str) or not command or not isinstance(args, list):
@@ -97,9 +99,12 @@ def read_discovery(path: Optional[Path] = None) -> list[PrsnEntry]:
                 command=command,
                 args=tuple(str(a) for a in args),
             ))
-        return entries
     except (ValueError, AttributeError, TypeError) as exc:
         raise GatewayError(BAD_DISCOVERY, f"{path}: {exc}") from None
+    if listed and not entries:
+        # PRSN Connect v0.2.0 on Windows and Linux lists its PRSNs but names no server (BUG-231).
+        raise GatewayError(NO_SERVER, str(path))
+    return entries
 
 
 def choose_prsn(entries: list[PrsnEntry], prsn_name: Optional[str]) -> PrsnEntry:

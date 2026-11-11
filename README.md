@@ -100,7 +100,7 @@ The prompt also offers two more choices. Allow this session stops Hermes asking 
 
 Hermes's own settings can also allow approvals in one-shot runs (`approvals.single_query_mode`) and in scheduled jobs (`approvals.cron_mode`). Each of these is your choice.
 
-The approval covers the plugin's Seal tools. An agent that can run commands as you could also reach PRSN Connect another way, for example by starting PRSN Connect's own server itself. So the plugin also asks you before a terminal command, file action, script, scheduled job or browser action of Hermes's own that names PRSN Connect, its server, its folders or its local gateway. Run it only if you asked for it. Allow this session and Always allow then cover that one call only. This catches an agent that goes around the plugin. It is not a wall, since a command can hide what it reaches, and other plugins' tools are not covered. With Hermes's approvals off, or in yolo mode, Hermes asks nothing, this check and each Seal included.
+The approval covers the plugin's Seal tools. An agent that can run commands as you could also reach PRSN Connect another way, for example by starting PRSN Connect's own server itself. So the plugin also asks you before a terminal command, file action, script, scheduled job or browser action of Hermes's own that names PRSN Connect, its server, its folders or its local gateway. Run it only if you asked for it. Allow this session and Always allow then cover that one call only. This catches an agent that goes around the plugin. It is not a wall, since a command can hide what it reaches, and the tools of other plugins and MCP servers are not covered. With Hermes's approvals off, or in yolo mode, Hermes asks nothing, this check and each Seal included.
 
 
 ## Settings

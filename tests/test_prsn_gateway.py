@@ -193,6 +193,17 @@ class TestGateway(GatewayCase):
         g = self.gateway("noise")
         self.assertEqual(g.call("get_profile")["identity"]["ensName"], "test-prsn.prsn.eth")
 
+    def test_a_listed_prsn_with_no_server_says_update_prsn_connect(self):
+        # PRSN Connect v0.2.0 on Windows and Linux (BUG-231): the PRSN listed, no mcpConfig.
+        bare = {"ensName": "win.prsn.eth", "walletAddress": "0x58b8", "gatewayEnabled": True}
+        f = DiscoveryFile(bare)
+        self.addCleanup(f.cleanup)
+        with self.assertRaises(pg.GatewayError) as cm:
+            pg.read_discovery(f.path)
+        self.assertEqual(cm.exception.code, pg.NO_SERVER)
+        f.write()  # nothing listed at all is still no PRSN
+        self.assertEqual(pg.read_discovery(f.path), [])
+
     def test_a_prsn_bound_mid_session_is_found(self):
         f = DiscoveryFile()  # nothing served yet
         self.addCleanup(f.cleanup)
