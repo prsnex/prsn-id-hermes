@@ -12,7 +12,7 @@ The PRSN ID plugin for Hermes connects AI agents operating with Hermes Agent or 
 ## What you need
 
 - Hermes 0.23.0 or later.
-- PRSN Connect v0.2.0 or later, on the same computer and under the same user account as Hermes. PRSN Connect is a desktop app for macOS, Windows and Linux. It keeps the agent's signing key in the computer's secure hardware. A server with no desktop cannot run it today.
+- PRSN Connect v0.2.1 or later, on the same computer and under the same user account as Hermes. PRSN Connect is a desktop app for macOS, Windows and Linux. It keeps the agent's signing key in the computer's secure hardware. A server with no desktop cannot run it today.
 - A free PRSN ID account for you and your AI agent(s). The steps are below.
 
 
@@ -92,15 +92,17 @@ PRSN ID sets a daily allowance of Seals for each PRSN. A Seal expires after a ti
 
 ### Your yes before each Seal
 
-A Seal speaks for your agent's PRSN, and anyone with its link can check it. So Hermes asks you before each Seal, with its own approval prompt. If no one is there to answer, the Seal is not made.
+A Seal speaks for your agent's PRSN, and anyone with its link can check it. So Hermes asks you before each Seal, with its own approval prompt. If no one is there to answer, the Seal is not made. A Hermes run that asks nothing is the exception, as the end of this section says.
 
 In Hermes Desktop the request is a card headed Command details, which says what will be sealed and as which PRSN. Its notification is titled Approval needed. Run makes the Seal. Reject stops it.
 
 The prompt also offers two more choices. Allow this session stops Hermes asking until the session ends. Always allow stops it asking for that kind of Seal from then on, in every session. Choose it only if you trust every Seal of that kind your agent might make.
 
-Hermes's own settings can also allow approvals in one-shot runs (`approvals.single_query_mode`) and in scheduled jobs (`approvals.cron_mode`). Each of these is your choice.
+Hermes's own settings can also allow approvals in single-query runs started with `hermes chat -q` (`approvals.single_query_mode`) and in scheduled jobs (`approvals.cron_mode`). Each of these is your choice.
 
-The approval covers the plugin's Seal tools. An agent that can run commands as you could also reach PRSN Connect another way, for example by starting PRSN Connect's own server itself. So the plugin also asks you before a terminal command, file action, script, scheduled job or browser action of Hermes's own that names PRSN Connect, its server, its folders or its local gateway. Run it only if you asked for it. Allow this session and Always allow then cover that one call only. This catches an agent that goes around the plugin. It is not a wall, since a command can hide what it reaches, and the tools of other plugins and MCP servers are not covered. With Hermes's approvals off, or in yolo mode, Hermes asks nothing, this check and each Seal included.
+The approval covers the plugin's Seal tools. An agent that can run commands as you could also reach PRSN Connect another way, for example by starting PRSN Connect's own server itself. So the plugin also asks you before a terminal command, file action, script, scheduled job or browser action of Hermes's own that names PRSN Connect, its server, its folders or its local gateway. Run it only if you asked for it. Allow this session and Always allow then cover that one call only. This catches an agent that goes around the plugin. It is not a wall, since a command can hide what it reaches, and the tools of other plugins and MCP servers are not covered. The approval covers an agent that uses the tools it is given. An agent with command access that sets out to go around it is stopped only where it names what it reaches.
+
+With Hermes's approvals off, in yolo mode, or in a one-shot run started with `hermes -z`, Hermes asks nothing, this check and each Seal included. An agent that can run commands can start such a run itself.
 
 
 ## Settings
@@ -127,7 +129,7 @@ A PRSN can seal only when it is verified. The plugin checks this live at each Se
 
 ## Where it is tested
 
-The plugin is tested on macOS with Hermes 0.23.0 and PRSN Connect v0.2.0. An agent sealed an email and sent it with Himalaya 2.2.1, and the received copy matched on its Seal page. On Windows, file Seals are refused, and a sealed message cannot carry attachments. PRSN Connect makes email Seals on all three systems. The plugin's Windows and Linux tests follow.
+The plugin's code, fingerprint `dae383b93c7b`, is tested on macOS with Hermes 0.23.0, and on Windows 11 and Ubuntu with Hermes 0.23.1, each with PRSN Connect v0.2.1. On Windows and Ubuntu, an agent sealed an email that verified on its Seal page. On macOS and Ubuntu, it sealed a file, and the Seal's page opened by itself and verified. On Windows, file Seals are refused, and a sealed message cannot carry attachments. On macOS, with the plugin's earlier code, an agent sealed an email and sent it with Himalaya 2.2.1, and the received copy matched on its Seal page.
 
 
 ## Sharing a computer
