@@ -94,7 +94,7 @@ PRSN ID sets a daily allowance of Seals for each PRSN. A Seal expires after a ti
 
 A Seal speaks for your agent's PRSN, and anyone with its link can check it. So Hermes asks you before each Seal, with its own approval prompt. If no one is there to answer, the Seal is not made. A Hermes run that asks nothing is the exception, as the end of this section says.
 
-In Hermes Desktop the request is a card headed Command details. It says what will be sealed, with every recipient, the full path of each file, where a sealed email will be written, and as which PRSN. Its notification is titled Approval needed. Run makes the Seal. Reject stops it. If a path is not absolute, or the email's output file is not a new `.eml` file in a folder that exists, the Seal is stopped before the card is shown, and the agent is told why.
+In Hermes Desktop the request is a card headed Command details. It says what will be sealed, with the sender and every recipient, the full path of each file, where a sealed email will be written, and as which PRSN. Its notification is titled Approval needed. Run makes the Seal. Reject stops it. If a path is not absolute, or the email's output file is not a new `.eml` file in a folder that exists, the Seal is stopped before the card is shown. The agent is told why, and may correct the path and ask again.
 
 The prompt also offers two more choices. Allow this session stops Hermes asking until the session ends. Always allow stops it asking for that kind of Seal from then on, in every session. Choose it only if you trust every Seal of that kind your agent might make.
 

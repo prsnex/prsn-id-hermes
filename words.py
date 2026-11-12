@@ -226,15 +226,26 @@ def _paths(value: Any) -> list[str]:
 
 def approve_seal(tool: str, args: dict, prsn: Optional[str]) -> str:
     """The card names everything the Seal touches, in full: the file's path, or the message's
-    recipients, every attachment's path and where the sealed .eml is written (Nous review of
-    d833d031, item 2; Gwen)."""
+    sender and recipients, every attachment's path and where the sealed .eml is written (Nous
+    review of d833d031, item 2; Gwen)."""
     who = prsn or "this agent's PRSN"
     if tool == "seal_file":
         what = f"the file {args.get('path') or 'named'}"
         written = ""
     else:
+        # From too: the agent supplies the sender, and an agent with no address to go on invented
+        # one on the Windows run of f305db8, which the card did not show (Gwen). The display name
+        # with it, since a mail reader shows that first.
+        sender = ", ".join(_paths(args.get("from")))
+        name = str(args.get("from_name") or "").strip()
+        if name:
+            sender = f"{name} <{sender}>" if sender else name
         recipients = ", ".join(_paths(args.get("to")))
-        what = f"an email to {recipients}" if recipients else "an email"
+        what = "an email"
+        if sender:
+            what += f" from {sender}"
+        if recipients:
+            what += f" to {recipients}"
         # Cc too: the human approves every address the message goes to (Gwen).
         copied = _paths(args.get("cc"))
         if copied:
@@ -247,8 +258,13 @@ def approve_seal(tool: str, args: dict, prsn: Optional[str]) -> str:
             f"A Seal speaks for {who}, and anyone with its link can check it.")
 
 
-AFTER_PATH_REFUSAL = ("Tell your human what was refused and why. Do not look for another way "
-                      "to do it.")
+# For the agent, after the plugin stops a Seal whose paths the helper would refuse. It names who
+# stopped it, and lets the agent correct the path (Gwen, after the Mac and Windows runs of f305db8:
+# one agent stopped, one corrected, and both said PRSN Connect refused). It promises no card, since
+# with approvals off, in yolo mode or in a one-shot run there is none (Gwen).
+AFTER_PATH_REFUSAL = ("The PRSN ID plugin stopped this call before asking your human, so PRSN Connect "
+                      "was not reached. You may correct the path and call again. If you cannot, tell "
+                      "your human what was stopped and why.")
 
 
 def refuse_seal_paths(tool: str, args: dict) -> Optional[str]:

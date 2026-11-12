@@ -134,6 +134,15 @@ class TestApproval(RuntimeCase):
                                  args={"to": ["a@example.com", "b@example.com"], "output_path": out})
         self.assertIn("an email to a@example.com, b@example.com as test-prsn.prsn.eth", email["message"])
         self.assertIn(f"It is written to {out}.", email["message"])
+        sender = rt.pre_tool_call(tool_name="prsn_id_seal_message",
+                                  args={"from": "me@x.com", "to": ["a@example.com"], "output_path": out})
+        # The sender the email will show, which the agent supplies (Gwen).
+        self.assertIn("an email from me@x.com to a@example.com as", sender["message"])
+        named = rt.pre_tool_call(tool_name="prsn_id_seal_message",
+                                 args={"from": "me@x.com", "from_name": "Test Sender", "to": ["a@example.com"],
+                                       "output_path": out})
+        # With the display name a mail reader shows first (Gwen).
+        self.assertIn("an email from Test Sender <me@x.com> to a@example.com as", named["message"])
         copied = rt.pre_tool_call(tool_name="prsn_id_seal_message",
                                   args={"to": ["a@example.com"], "cc": ["boss@y.com"], "output_path": out})
         # Every address the message goes to, Cc included (Gwen).
@@ -182,6 +191,9 @@ class TestApproval(RuntimeCase):
             self.assertEqual(directive["action"], "block", args)
             self.assertIn(why, directive["message"])
             self.assertIn("No Seal was made", directive["message"])
+            # Who stopped it, and that a corrected call is allowed (Gwen).
+            self.assertIn("The PRSN ID plugin stopped this call", directive["message"])
+            self.assertIn("You may correct the path and call again", directive["message"])
         file = rt.pre_tool_call(tool_name="prsn_id_seal_file", args={"path": "report.pdf"})
         self.assertEqual(file["action"], "block")
         self.assertIn("must be absolute", file["message"])
@@ -639,6 +651,10 @@ class TestWords(unittest.TestCase):
                    words.identity_line("a.prsn.eth", True, "g.prsn.eth"),
                    words.identity_line("a.prsn.eth", False),
                    words.approve_seal("seal_message", {"to": ["a@example.com"]}, "a.prsn.eth"),
+                   words.approve_seal("seal_message", {"from": "me@x.com", "to": ["a@example.com"]},
+                                      "a.prsn.eth"),
+                   words.approve_seal("seal_message", {"from": "me@x.com", "from_name": "Test Sender",
+                                                       "to": ["a@example.com"]}, "a.prsn.eth"),
                    words.approve_seal("seal_message", {"to": ["a@example.com"],
                                                        "attachments": ["/a/b.pdf", "/a/c.png"]}, None),
                    words.approve_seal("seal_message", {"to": ["a@example.com"], "cc": ["b@y.com"],
