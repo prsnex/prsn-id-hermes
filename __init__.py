@@ -284,6 +284,11 @@ class Runtime:
             }
         if tool_name not in SEAL_TOOLS:
             return None
+        refusal = words.refuse_seal_paths(TOOLS[tool_name], args or {})
+        if refusal:
+            # Hermes's veto: the call is not made and the agent reads why. The human is not asked
+            # to approve a Seal the helper would refuse (Nous review of d833d031, item 2).
+            return {"action": "block", "message": f"{refusal} {words.AFTER_PATH_REFUSAL}"}
         return {
             "action": "approve",
             "message": words.approve_seal(TOOLS[tool_name], args or {}, self.current_prsn()),

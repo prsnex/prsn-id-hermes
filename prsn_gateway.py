@@ -14,6 +14,8 @@ Standard library only.
 from __future__ import annotations
 
 import atexit
+import os
+import sys
 import contextvars
 import itertools
 import json
@@ -22,6 +24,32 @@ import threading
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable, Optional
+
+
+# The environment the helper is given: only what prsn-gateway-mcp reads, never Hermes's provider
+# keys (Nous review of d833d031, item 1). Read in prsn-connect tools/prsn-gateway-mcp/src: HOME,
+# and on Windows USERPROFILE, to find ~/.prsn-id/gateway.json (discovery.rs 749); APPDATA (Windows),
+# XDG_CONFIG_HOME (Linux) for its token folder; TMPDIR (Unix) for a user-id probe; on Linux
+# DBUS_SESSION_BUS_ADDRESS and XDG_RUNTIME_DIR for the system keyring; PRSN_GATEWAY_ADDR and
+# PRSN_GATEWAY_TOKEN_FILE for a container (main.rs 57, 61). SYSTEMROOT and TEMP/TMP are what
+# Windows programs need from their environment. The rest of the reviewer's list is harmless.
+HELPER_ENV = ("PATH", "HOME", "USER", "LANG", "TMPDIR")
+HELPER_ENV_WINDOWS = ("SYSTEMROOT", "USERPROFILE", "APPDATA", "LOCALAPPDATA", "TEMP", "TMP")
+HELPER_ENV_LINUX = ("XDG_CONFIG_HOME", "XDG_RUNTIME_DIR", "DBUS_SESSION_BUS_ADDRESS")
+
+
+def helper_env(environ: Optional[dict] = None, platform: Optional[str] = None) -> dict:
+    """Only the variables the helper reads, each only when it is set, and any PRSN_ ones."""
+    environ = os.environ if environ is None else environ
+    platform = sys.platform if platform is None else platform
+    keys = list(HELPER_ENV)
+    if platform.startswith("win"):
+        keys += HELPER_ENV_WINDOWS
+    elif platform.startswith("linux"):
+        keys += HELPER_ENV_LINUX
+    env = {key: environ[key] for key in keys if key in environ}
+    env.update({key: value for key, value in environ.items() if key.startswith("PRSN_")})
+    return env
 
 PROTOCOL_VERSION = "2025-06-18"
 CLIENT_NAME = "prsn-id-hermes"
@@ -156,7 +184,7 @@ class McpClient:
                 # PRSN Connect's server log names addresses and connection states, never a token.
                 log = open(self._server_log, "ab")
             self._proc = subprocess.Popen(
-                self._argv, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                self._argv, stdin=subprocess.PIPE, stdout=subprocess.PIPE, env=helper_env(),
                 stderr=log if log is not None else subprocess.DEVNULL,
                 text=True, encoding="utf-8", bufsize=1,
             )

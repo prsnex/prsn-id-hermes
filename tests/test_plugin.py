@@ -114,8 +114,10 @@ class RuntimeCase(unittest.TestCase):
 class TestApproval(RuntimeCase):
     def test_each_seal_asks_the_human(self):
         rt = self.runtime()
+        out = os.path.join(tempfile.mkdtemp(), "new.eml")
         for tool in plugin.SEAL_TOOLS:
-            directive = rt.pre_tool_call(tool_name=tool, args={"to": ["a@example.com"], "path": "/x/report.pdf"})
+            directive = rt.pre_tool_call(tool_name=tool, args={"to": ["a@example.com"], "path": "/x/report.pdf",
+                                                               "output_path": out})
             self.assertEqual(directive["action"], "approve")
             self.assertIn("A Seal speaks for", directive["message"])
             self.assertTrue(directive["rule_key"].startswith("prsn-id:"))
@@ -127,23 +129,99 @@ class TestApproval(RuntimeCase):
 
     def test_the_question_names_what_and_who(self):
         rt = self.runtime(settings={"prsn_name": "test-prsn.prsn.eth"})
-        email = rt.pre_tool_call(tool_name="prsn_id_seal_message", args={"to": ["a@example.com", "b@example.com"]})
+        out = os.path.join(tempfile.mkdtemp(), "new.eml")
+        email = rt.pre_tool_call(tool_name="prsn_id_seal_message",
+                                 args={"to": ["a@example.com", "b@example.com"], "output_path": out})
         self.assertIn("an email to a@example.com, b@example.com as test-prsn.prsn.eth", email["message"])
+        self.assertIn(f"It is written to {out}.", email["message"])
         file = rt.pre_tool_call(tool_name="prsn_id_seal_file", args={"path": "/tmp/q3/report.pdf"})
-        self.assertIn("the file report.pdf", file["message"])
+        # The full path, not the basename (Nous review of d833d031, item 2).
+        self.assertIn("the file /tmp/q3/report.pdf as", file["message"])
 
     def test_the_card_names_a_messages_attachments(self):
         """Gwen: the human sees every file a sealed message covers, not only its recipients."""
         rt = self.runtime()
+        out = os.path.join(tempfile.mkdtemp(), "new.eml")
         one = rt.pre_tool_call(tool_name="prsn_id_seal_message",
-                               args={"to": ["a@example.com"], "attachments": ["/tmp/q3/report.pdf"]})
-        self.assertIn("an email to a@example.com, with the attachment report.pdf", one["message"])
+                               args={"to": ["a@example.com"], "attachments": ["/tmp/q3/report.pdf"],
+                                     "output_path": out})
+        self.assertIn("an email to a@example.com, with the attachment /tmp/q3/report.pdf as", one["message"])
         two = rt.pre_tool_call(tool_name="prsn_id_seal_message",
-                               args={"to": ["a@example.com"],
-                                     "attachments": ["/tmp/q3/report.pdf", "C:\\Users\\a\\b.png"]})
-        self.assertIn("with the attachments report.pdf, b.png", two["message"])
-        none = rt.pre_tool_call(tool_name="prsn_id_seal_message", args={"to": ["a@example.com"]})
+                               args={"to": ["a@example.com"], "output_path": out,
+                                     "attachments": ["/tmp/q3/report.pdf", "/tmp/q4/b.png"]})
+        self.assertIn("with the attachments /tmp/q3/report.pdf, /tmp/q4/b.png as", two["message"])
+        none = rt.pre_tool_call(tool_name="prsn_id_seal_message",
+                                args={"to": ["a@example.com"], "output_path": out})
         self.assertNotIn("attachment", none["message"])
+
+    def test_a_seal_whose_paths_would_be_refused_is_blocked_before_the_card(self):
+        """The helper's own rules, applied before the human is asked (Nous review of d833d031,
+        item 2): a relative, non-.eml, existing or folderless output_path, a relative attachment
+        or a relative file path. Hermes blocks the call and the agent reads why."""
+        rt = self.runtime()
+        folder = tempfile.mkdtemp()
+        taken = os.path.join(folder, "taken.eml")
+        with open(taken, "w") as f:
+            f.write("x")
+        for args, why in [
+            ({"to": ["a@example.com"], "output_path": "new.eml"}, "must be absolute"),
+            ({"to": ["a@example.com"], "output_path": os.path.join(folder, "note.txt")}, "must end in .eml"),
+            ({"to": ["a@example.com"], "output_path": taken}, "already exists"),
+            ({"to": ["a@example.com"], "output_path": os.path.join(folder, "no-such", "x.eml")}, "does not exist"),
+            ({"to": ["a@example.com"], "output_path": os.path.join(folder, "n.eml"),
+              "attachments": ["report.pdf"]}, "absolute path"),
+        ]:
+            directive = rt.pre_tool_call(tool_name="prsn_id_seal_message", args=args)
+            self.assertEqual(directive["action"], "block", args)
+            self.assertIn(why, directive["message"])
+            self.assertIn("No Seal was made", directive["message"])
+        file = rt.pre_tool_call(tool_name="prsn_id_seal_file", args={"path": "report.pdf"})
+        self.assertEqual(file["action"], "block")
+        self.assertIn("must be absolute", file["message"])
+
+
+class TestHelperEnvironment(unittest.TestCase):
+    """Nous review of d833d031, item 1: the helper gets only what it reads, never Hermes's keys."""
+
+    BASE = {"PATH": "/bin", "HOME": "/home/a", "LANG": "en_US.UTF-8", "OPENAI_API_KEY": "sk-x",
+            "ANTHROPIC_API_KEY": "sk-y", "PRSN_GATEWAY_ADDR": "127.0.0.1:7331",
+            "USERPROFILE": "C:\\Users\\a", "SYSTEMROOT": "C:\\Windows", "APPDATA": "C:\\a",
+            "XDG_CONFIG_HOME": "/home/a/.config", "DBUS_SESSION_BUS_ADDRESS": "unix:path=/run/bus"}
+
+    def test_no_provider_key_reaches_the_helper_on_any_system(self):
+        for platform in ("darwin", "linux", "win32"):
+            env = pg.helper_env(self.BASE, platform)
+            self.assertNotIn("OPENAI_API_KEY", env, platform)
+            self.assertNotIn("ANTHROPIC_API_KEY", env, platform)
+            self.assertEqual(env["HOME"], "/home/a")
+            self.assertEqual(env["PRSN_GATEWAY_ADDR"], "127.0.0.1:7331")
+
+    def test_each_system_gets_what_the_helper_reads_there(self):
+        win = pg.helper_env(self.BASE, "win32")
+        self.assertEqual(win["USERPROFILE"], "C:\\Users\\a")  # the one the reviewer's list missed
+        self.assertIn("SYSTEMROOT", win)
+        self.assertIn("APPDATA", win)
+        linux = pg.helper_env(self.BASE, "linux")
+        self.assertIn("XDG_CONFIG_HOME", linux)
+        self.assertIn("DBUS_SESSION_BUS_ADDRESS", linux)
+        self.assertNotIn("USERPROFILE", linux)
+        mac = pg.helper_env(self.BASE, "darwin")
+        self.assertNotIn("DBUS_SESSION_BUS_ADDRESS", mac)
+
+    def test_the_helper_is_started_with_that_environment(self):
+        seen = {}
+
+        class FakePopen:
+            def __init__(self, argv, **kwargs):
+                seen.update(kwargs)
+                raise OSError("stop here")
+
+        with mock.patch.object(pg.subprocess, "Popen", FakePopen), \
+                mock.patch.dict(os.environ, {"OPENAI_API_KEY": "sk-x"}):
+            with self.assertRaises(pg.GatewayError):
+                pg.McpClient("prsn-gateway-mcp", []).start()
+        self.assertIn("env", seen)
+        self.assertNotIn("OPENAI_API_KEY", seen["env"])
 
 
 class TestTools(RuntimeCase):

@@ -218,25 +218,58 @@ def explain_profile(profile: dict) -> dict:
 
 # -- the question Hermes asks the human before a Seal --------------------------------------------
 
+def _paths(value: Any) -> list[str]:
+    if isinstance(value, str):
+        return [value]
+    return [str(v) for v in value] if isinstance(value, list) else []
+
+
 def approve_seal(tool: str, args: dict, prsn: Optional[str]) -> str:
+    """The card names everything the Seal touches, in full: the file's path, or the message's
+    recipients, every attachment's path and where the sealed .eml is written (Nous review of
+    d833d031, item 2; Gwen)."""
     who = prsn or "this agent's PRSN"
     if tool == "seal_file":
-        path = str(args.get("path") or "a file")
-        name = path.replace("\\", "/").rsplit("/", 1)[-1]
-        what = f"the file {name}"
+        what = f"the file {args.get('path') or 'named'}"
+        written = ""
     else:
-        to = args.get("to") or []
-        recipients = ", ".join(str(t) for t in to) if isinstance(to, list) else str(to)
+        recipients = ", ".join(_paths(args.get("to")))
         what = f"an email to {recipients}" if recipients else "an email"
-        # The card names the attachments too, so the human sees every file the Seal covers (Gwen).
-        attached = args.get("attachments") or []
-        if isinstance(attached, str):
-            attached = [attached]
-        names = [str(a).replace("\\", "/").rsplit("/", 1)[-1] for a in attached]
-        if names:
-            what += f", with {'the attachment' if len(names) == 1 else 'the attachments'} {', '.join(names)}"
-    return (f"Seal {what} as {who}. "
+        attached = _paths(args.get("attachments"))
+        if attached:
+            what += f", with {'the attachment' if len(attached) == 1 else 'the attachments'} {', '.join(attached)}"
+        written = f" It is written to {args.get('output_path') or 'a file not named'}."
+    return (f"Seal {what} as {who}.{written} "
             f"A Seal speaks for {who}, and anyone with its link can check it.")
+
+
+AFTER_PATH_REFUSAL = ("Tell your human what was refused and why. Do not look for another way "
+                      "to do it.")
+
+
+def refuse_seal_paths(tool: str, args: dict) -> Optional[str]:
+    """Why a Seal's paths will be refused, before its human is asked: the same rules the helper
+    applies (prsn-gateway-mcp tools.rs check_output_path), so no one approves a Seal that fails.
+    None when they pass."""
+    import os
+    if tool == "seal_file":
+        path = str(args.get("path") or "")
+        if not os.path.isabs(path):
+            return "The file's path must be absolute. No Seal was made."
+        return None
+    for path in _paths(args.get("attachments")):
+        if not os.path.isabs(path):
+            return f"The attachment {path} must be named by its absolute path. No Seal was made."
+    out = str(args.get("output_path") or "")
+    if not os.path.isabs(out):
+        return "output_path must be absolute. No Seal was made."
+    if not out.lower().endswith(".eml"):
+        return "output_path must end in .eml. No Seal was made."
+    if os.path.exists(out):
+        return f"{out} already exists. Name a new file. No Seal was made."
+    if not os.path.isdir(os.path.dirname(out)):
+        return f"The folder of {out} does not exist. No Seal was made."
+    return None
 
 
 # -- the Desktop status item: a short word, and a line for its tooltip ------------------------------
