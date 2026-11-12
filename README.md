@@ -12,7 +12,7 @@ The PRSN ID plugin for Hermes connects AI agents operating with Hermes Agent or 
 ## What you need
 
 - Hermes 0.23.0 or later.
-- PRSN Connect v0.2.1 or later, on the same computer and under the same user account as Hermes. PRSN Connect is a desktop app for macOS, Windows and Linux. It keeps the agent's signing key in the computer's secure hardware. A server with no desktop cannot run it today.
+- PRSN Connect v0.2.1 or later on macOS and Linux, and v0.2.2 or later on Windows, on the same computer and under the same user account as Hermes. PRSN Connect is a desktop app for macOS, Windows and Linux. It keeps the agent's signing key in the computer's secure hardware. A server with no desktop cannot run it today.
 - A free PRSN ID account for you and your AI agent(s). The steps are below.
 
 
@@ -129,7 +129,7 @@ A PRSN can seal only when it is verified. The plugin checks this live at each Se
 
 ## Where it is tested
 
-The plugin's code, fingerprint `dae383b93c7b`, is tested on macOS with Hermes 0.23.0, and on Windows 11 and Ubuntu with Hermes 0.23.1, each with PRSN Connect v0.2.1. On Windows and Ubuntu, an agent sealed an email that verified on its Seal page. On macOS and Ubuntu, it sealed a file, and the Seal's page opened by itself and verified. On Windows, file Seals are refused, and a sealed message cannot carry attachments. On macOS, with the plugin's earlier code, an agent sealed an email and sent it with Himalaya 2.2.1, and the received copy matched on its Seal page.
+The plugin's code, fingerprint `6634e3d93fa7`, is tested on macOS with Hermes 0.23.0 and PRSN Connect v0.2.1, on Ubuntu with Hermes 0.23.1 and PRSN Connect v0.2.1, and on Windows 11 with Hermes 0.23.1 and PRSN Connect v0.2.2. On all three, an agent sealed an email with a copy and an attachment. The approval card named the sender, every recipient, the attachment's full path and the file the email was written to. Each Seal's public record showed the PRSN verified. On Ubuntu, a relative output path was stopped before any card was shown. With PRSN Connect v0.2.1 on Windows, file Seals are refused, and a sealed message cannot carry attachments. PRSN Connect v0.2.2 adds both on Windows. With the plugin's earlier code, an agent on macOS, Ubuntu and Windows 11 sealed a file, and the Seal's page opened by itself and verified. With that earlier code on macOS, an agent also sealed an email and sent it with Himalaya 2.2.1, and the received copy matched on its Seal page.
 
 
 ## Sharing a computer
@@ -140,7 +140,7 @@ PRSN Connect serves every PRSN bound on this computer under the same user accoun
 ## What the plugin reads, runs and sends
 
 - It reads `~/.prsn-id/gateway.json`. PRSN Connect writes this file to say which PRSNs it serves. The file holds no token.
-- It starts `prsn-gateway-mcp`, a program that PRSN Connect installed. It starts it when one of its tools is first called, and gives it a short fixed list of environment settings, with none of Hermes's API keys. It talks to it on this computer over standard input and output. The helper runs for as long as Hermes's background process does. Closing the Hermes Desktop window can leave both running.
+- It starts `prsn-gateway-mcp`, a program that PRSN Connect installed. It starts it when one of its tools is first called, and gives it a short fixed list of environment settings, with none of Hermes's API keys. It talks to it on this computer over standard input and output. The helper runs for as long as Hermes's background process does. Closing the Hermes Desktop window can leave both running. After you update the plugin, restart Hermes. Until then, a helper the earlier code started keeps running with Hermes's whole environment.
 - For the Desktop status item, its backend route may start a second copy of `prsn-gateway-mcp`. That copy lives as long as the route's process. It reads the state at most once every fifteen minutes.
 - It writes the last state it read to `status.json` in its own data folder, for the Desktop status item. That file holds a name, a yes or no, a heartbeat time and words. It holds no token and no address.
 - PRSN Connect makes the calls to `api.prsnid.ai`. A Seal's link opens `verify.prsnid.ai`.
