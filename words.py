@@ -235,6 +235,10 @@ def approve_seal(tool: str, args: dict, prsn: Optional[str]) -> str:
     else:
         recipients = ", ".join(_paths(args.get("to")))
         what = f"an email to {recipients}" if recipients else "an email"
+        # Cc too: the human approves every address the message goes to (Gwen).
+        copied = _paths(args.get("cc"))
+        if copied:
+            what += f", with {'a copy' if len(copied) == 1 else 'copies'} to {', '.join(copied)}"
         attached = _paths(args.get("attachments"))
         if attached:
             what += f", with {'the attachment' if len(attached) == 1 else 'the attachments'} {', '.join(attached)}"

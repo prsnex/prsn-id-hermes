@@ -134,6 +134,13 @@ class TestApproval(RuntimeCase):
                                  args={"to": ["a@example.com", "b@example.com"], "output_path": out})
         self.assertIn("an email to a@example.com, b@example.com as test-prsn.prsn.eth", email["message"])
         self.assertIn(f"It is written to {out}.", email["message"])
+        copied = rt.pre_tool_call(tool_name="prsn_id_seal_message",
+                                  args={"to": ["a@example.com"], "cc": ["boss@y.com"], "output_path": out})
+        # Every address the message goes to, Cc included (Gwen).
+        self.assertIn("an email to a@example.com, with a copy to boss@y.com as", copied["message"])
+        two = rt.pre_tool_call(tool_name="prsn_id_seal_message",
+                               args={"to": ["a@example.com"], "cc": ["b@y.com", "c@y.com"], "output_path": out})
+        self.assertIn("with copies to b@y.com, c@y.com as", two["message"])
         file = rt.pre_tool_call(tool_name="prsn_id_seal_file", args={"path": "/tmp/q3/report.pdf"})
         # The full path, not the basename (Nous review of d833d031, item 2).
         self.assertIn("the file /tmp/q3/report.pdf as", file["message"])
@@ -634,6 +641,8 @@ class TestWords(unittest.TestCase):
                    words.approve_seal("seal_message", {"to": ["a@example.com"]}, "a.prsn.eth"),
                    words.approve_seal("seal_message", {"to": ["a@example.com"],
                                                        "attachments": ["/a/b.pdf", "/a/c.png"]}, None),
+                   words.approve_seal("seal_message", {"to": ["a@example.com"], "cc": ["b@y.com"],
+                                                       "output_path": "/a/new.eml"}, None),
                    words.approve_seal("seal_file", {"path": "/a/b.pdf"}, None),
                    words.FILE_SEAL_PAGE_OPENED, words.FILE_SEAL_PAGE_NOT_OPENED,
                    words.AFTER_REFUSAL, words.DIRECT_TO_PRSN_CONNECT,

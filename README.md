@@ -94,7 +94,7 @@ PRSN ID sets a daily allowance of Seals for each PRSN. A Seal expires after a ti
 
 A Seal speaks for your agent's PRSN, and anyone with its link can check it. So Hermes asks you before each Seal, with its own approval prompt. If no one is there to answer, the Seal is not made. A Hermes run that asks nothing is the exception, as the end of this section says.
 
-In Hermes Desktop the request is a card headed Command details. It says what will be sealed, with the full path of each file, where a sealed email will be written, and as which PRSN. Its notification is titled Approval needed. Run makes the Seal. Reject stops it. A Seal whose paths PRSN Connect would refuse is stopped before the card is shown, and the agent is told why.
+In Hermes Desktop the request is a card headed Command details. It says what will be sealed, with every recipient, the full path of each file, where a sealed email will be written, and as which PRSN. Its notification is titled Approval needed. Run makes the Seal. Reject stops it. If a path is not absolute, or the email's output file is not a new `.eml` file in a folder that exists, the Seal is stopped before the card is shown, and the agent is told why.
 
 The prompt also offers two more choices. Allow this session stops Hermes asking until the session ends. Always allow stops it asking for that kind of Seal from then on, in every session. Choose it only if you trust every Seal of that kind your agent might make.
 
@@ -140,7 +140,7 @@ PRSN Connect serves every PRSN bound on this computer under the same user accoun
 ## What the plugin reads, runs and sends
 
 - It reads `~/.prsn-id/gateway.json`. PRSN Connect writes this file to say which PRSNs it serves. The file holds no token.
-- It starts `prsn-gateway-mcp`, a program that PRSN Connect installed. It starts it when one of its tools is first called, and gives it only the settings it reads from the environment, never Hermes's API keys. It talks to it on this computer over standard input and output. The helper runs for as long as Hermes's background process does. Closing the Hermes Desktop window can leave both running.
+- It starts `prsn-gateway-mcp`, a program that PRSN Connect installed. It starts it when one of its tools is first called, and gives it a short fixed list of environment settings, with none of Hermes's API keys. It talks to it on this computer over standard input and output. The helper runs for as long as Hermes's background process does. Closing the Hermes Desktop window can leave both running.
 - For the Desktop status item, its backend route may start a second copy of `prsn-gateway-mcp`. That copy lives as long as the route's process. It reads the state at most once every fifteen minutes.
 - It writes the last state it read to `status.json` in its own data folder, for the Desktop status item. That file holds a name, a yes or no, a heartbeat time and words. It holds no token and no address.
 - PRSN Connect makes the calls to `api.prsnid.ai`. A Seal's link opens `verify.prsnid.ai`.
